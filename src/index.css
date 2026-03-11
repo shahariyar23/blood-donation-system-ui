@@ -1,0 +1,156 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────
+   1. CUSTOM THEME VARIABLES
+───────────────────────────────────────── */
+@theme {
+
+  /* Blood Donation Color Palette */
+  --color-primary:    #e53935;   /* blood red */
+  --color-secondary:  #1e293b;   /* dark slate */
+  --color-accent:     #f87171;   /* soft red */
+  --color-light:      #f8fafc;   /* light background */
+  --color-dark:       #0f172a;   /* dark text */
+
+  /* Fonts */
+  --font-sans: "Poppins", sans-serif;
+  --font-serif: "Playfair Display", serif;
+
+  /* Extra Font Size */
+  --text-xxs: 0.65rem;
+
+  /* Custom Spacing */
+  --spacing-18: 4.5rem;
+  --spacing-22: 5.5rem;
+
+  /* Border Radius */
+  --radius-xl: 1.25rem;
+
+  /* Breakpoints */
+  --breakpoint-xs: 480px;
+}
+
+
+/* ─────────────────────────────────────────
+   2. BASE STYLES
+───────────────────────────────────────── */
+@layer base {
+
+  *{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    scroll-behavior:smooth;
+  }
+
+  body{
+    @apply font-sans bg-light text-dark;
+  }
+
+  h1,h2,h3,h4{
+    @apply font-serif;
+  }
+
+  a{
+    @apply no-underline;
+  }
+
+  img{
+    @apply max-w-full;
+  }
+
+  button{
+    @apply cursor-pointer;
+  }
+}
+
+
+/* ─────────────────────────────────────────
+   3. CUSTOM COMPONENTS
+───────────────────────────────────────── */
+@layer components {
+
+  /* Main Button (Donate / Request) */
+  .btn-primary{
+    @apply bg-primary text-white px-6 py-2 font-semibold rounded-lg
+           hover:bg-red-700 transition-all duration-300;
+  }
+
+  /* Secondary Button */
+  .btn-secondary{
+    @apply bg-secondary text-white px-6 py-2 rounded-lg
+           hover:bg-slate-800 transition-all duration-300;
+  }
+
+  /* Outline Button */
+  .btn-outline{
+    @apply border border-primary text-primary px-6 py-2 rounded-lg
+           hover:bg-primary hover:text-white
+           transition-all duration-300;
+  }
+
+  /* Section layout */
+  .section{
+    @apply py-16 px-4 md:px-10;
+  }
+
+  .section-title{
+    @apply text-3xl md:text-4xl font-bold text-center mb-6;
+  }
+
+  .section-subtitle{
+    @apply text-gray-500 text-center max-w-xl mx-auto mb-10;
+  }
+
+  /* Card for donor info */
+  .donor-card{
+    @apply bg-white rounded-xl shadow-md p-6
+           hover:shadow-xl transition-all duration-300;
+  }
+
+  /* Blood group badge */
+  .blood-badge{
+    @apply bg-primary text-white text-sm font-semibold
+           px-3 py-1 rounded-full;
+  }
+
+  /* Input field */
+  .input-field{
+    @apply w-full border border-gray-300 rounded-lg px-4 py-2
+           focus:outline-none focus:ring-2 focus:ring-primary;
+  }
+
+  /* Container */
+  .container-custom{
+    @apply max-w-7xl mx-auto px-4;
+  }
+
+}
+
+
+/* ─────────────────────────────────────────
+   4. CUSTOM UTILITIES
+───────────────────────────────────────── */
+@layer utilities {
+
+  .text-shadow{
+    text-shadow:2px 2px 4px rgba(0,0,0,0.4);
+  }
+
+  .glass{
+    backdrop-filter: blur(10px);
+    background: rgba(255,255,255,0.6);
+  }
+
+  .no-scrollbar::-webkit-scrollbar{
+    display:none;
+  }
+
+  .center-flex{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+}
