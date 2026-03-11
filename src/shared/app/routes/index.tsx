@@ -6,6 +6,7 @@ import NotFound from "../../../features/not-found/NotFound";
 // import Rooms from "../../../features/rooms/ui";
 import Contact from "../../../features/contact/ui";
 import About from "../../../features/about/ui";
+import FindDonorPage from "../../../features/findDoner/ui/FindDoner";
 // import RoomDetail from "../../../features/roomDetails/ui";
 
 export const router = createBrowserRouter([
@@ -21,8 +22,8 @@ export const router = createBrowserRouter([
         element: <About />,
       },
       {
-        path: "/gallery",
-        element: <Home />,
+        path: "/find-donor",
+        element: <FindDonorPage />,
       },
       {
         path: "/contact",
