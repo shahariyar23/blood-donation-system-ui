@@ -1,13 +1,10 @@
-// import { lazy } from "react";
 import { createBrowserRouter } from "react-router-dom";
 import MainLayout from "../../layout/MainLayout";
 import Home from "../../../features/home/container/Home";
 import NotFound from "../../../features/not-found/NotFound";
-// import Rooms from "../../../features/rooms/ui";
 import Contact from "../../../features/contact/ui";
 import About from "../../../features/about/ui";
-import FindDonorPage from "../../../features/findDoner/ui/FindDoner";
-// import RoomDetail from "../../../features/roomDetails/ui";
+import FindDonorPage from "../../../features/findDoner/container/Finddonorpage";
 
 export const router = createBrowserRouter([
   {
