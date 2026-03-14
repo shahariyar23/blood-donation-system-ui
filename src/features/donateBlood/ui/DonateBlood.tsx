@@ -228,7 +228,7 @@ const DonateBlood = () => {
           setLocationLoading(false);
         }
       },
-      (error) => {
+      () => {
         setLocationError('Location permission denied. Please enter manually.');
         setLocationHelperText('Permission denied');
         setLocationLoading(false);
