@@ -4,7 +4,6 @@ import { Icons } from "../../../shared/icons/Icons";
 import {
   BLOOD_GROUPS,
   SORT_OPTIONS,
-  DEFAULT_FILTERS,
   type FilterState,
 } from "../service/Donordata";
 

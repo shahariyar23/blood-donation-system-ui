@@ -25,7 +25,7 @@ import { CiTwitter } from "react-icons/ci";
 
 import { CgClose, CgCopyright } from "react-icons/cg";
 
-import { IoIosArrowForward, IoMdArrowForward } from "react-icons/io";
+import { IoIosArrowBack, IoIosArrowForward, IoMdArrowForward } from "react-icons/io";
 import { LuHandshake } from "react-icons/lu";
 import { CiClock2 } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
@@ -83,5 +83,6 @@ export const Icons = {
   Time: createIcon(CiClock2),
   Plus: createIcon(FiPlus),
   Cross: createIcon(RxCross2),
-  Arrow: createIcon(IoIosArrowForward)
+  Arrow: createIcon(IoIosArrowForward),
+  ArrowBack: createIcon(IoIosArrowBack )
 };

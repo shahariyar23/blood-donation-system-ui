@@ -2,8 +2,6 @@ import { createBrowserRouter } from "react-router-dom";
 import MainLayout from "../../layout/MainLayout";
 import Home from "../../../features/home/container/Home";
 import NotFound from "../../../features/not-found/NotFound";
-import Contact from "../../../features/contact/ui";
-import About from "../../../features/about/ui";
 import FindDonorPage from "../../../features/findDoner/container/Finddonorpage";
 
 export const router = createBrowserRouter([
@@ -15,16 +13,8 @@ export const router = createBrowserRouter([
         element: <Home />,
       },
       {
-        path: "/about",
-        element: <About />,
-      },
-      {
         path: "/find-donor",
         element: <FindDonorPage />,
-      },
-      {
-        path: "/contact",
-        element: <Contact />,
       },
       {
         path: "/blogs",
