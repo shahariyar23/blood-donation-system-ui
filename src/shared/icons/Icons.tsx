@@ -14,7 +14,7 @@ import {
 } from "react-icons/fa";
 import { MdDashboard, MdEmail, MdBloodtype } from "react-icons/md";
 import { GrLocationPin } from "react-icons/gr";
-import { AiOutlineMenu, AiOutlineSetting } from "react-icons/ai";
+import { AiOutlineLoading, AiOutlineMenu, AiOutlineSetting } from "react-icons/ai";
 import { BsCheckCircleFill, BsClockHistory, BsInstagram, BsMailbox, BsTrash } from "react-icons/bs";
 import { CiTwitter } from "react-icons/ci";
 import { CgClose, CgCopyright } from "react-icons/cg";
@@ -80,5 +80,6 @@ export const Icons = {
   Cross: createIcon(RxCross2),
   Arrow: createIcon(IoIosArrowForward),
   ArrowBack: createIcon(IoIosArrowBack),
-  AlertCircle: createIcon(IoAlertCircleOutline)
+  AlertCircle: createIcon(IoAlertCircleOutline),
+  Loading: createIcon(AiOutlineLoading)
 };
