@@ -1,12 +1,12 @@
 // src/shared/form/Form.tsx
 import React from 'react';
 import CustomButton from '../button/CustomButton';
-import {Icons} from '../icons/Icons';
+import { Icons } from '../icons/Icons';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { cn } from "../../lib/utils"
+import { cn } from "../../lib/utils";
 
-export type FieldType = 
+export type FieldType =
   | 'text' | 'email' | 'password' | 'tel' | 'number'
   | 'select' | 'textarea' | 'checkbox' | 'date';
 
@@ -42,7 +42,7 @@ interface FormProps {
   onChange: (name: string, value: any) => void;
   onSubmit: (e: React.FormEvent) => void;
   errors?: Record<string, string>;
-  fieldActions?: Record<string, React.ReactNode>; // actions inside fields
+  fieldActions?: Record<string, React.ReactNode>;
   submitText?: string | React.ReactNode;
   loading?: boolean;
   disabled?: boolean;
@@ -68,16 +68,13 @@ const Form: React.FC<FormProps> = ({
   showSubmitButton = true,
 }) => {
   const hasCheckbox = fields.some(f => f.type === 'checkbox');
-  
+
   const getGridCols = () => {
     if (hasCheckbox) return 'grid-cols-1';
     switch (layout) {
-      case 'double':
-        return 'grid-cols-1 md:grid-cols-2';
-      case 'triple':
-        return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
-      default:
-        return 'grid-cols-1';
+      case 'double': return 'grid-cols-1 md:grid-cols-2';
+      case 'triple': return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
+      default:       return 'grid-cols-1';
     }
   };
 
@@ -99,22 +96,35 @@ const Form: React.FC<FormProps> = ({
   };
 
   const renderField = (field: Field) => {
-    const error = errors[field.name];
-    const value = values[field.name] || '';
-    const Icon = field.icon;
+    const error  = errors[field.name];
+    const value  = values[field.name] ?? '';
+    const Icon   = field.icon;
     const action = fieldActions[field.name];
 
+    // ── Base input styles ──────────────────────────────
     const baseInputClass = cn(
-      "w-full transition-colors focus:border-primary",
-      Icon && "pl-10",
-      action && "pr-10",
-      error && "border-primary/50 ring-1 ring-primary/30",
+      "w-full bg-white border border-gray-200 rounded-xs px-4 py-2.5",
+      "text-sm text-dark placeholder-gray-400",
+      "transition-all duration-200 outline-none",
+      "focus:border-primary focus:ring-2 focus:ring-primary/20",
+      "disabled:opacity-50 disabled:cursor-not-allowed",
+      Icon   && "pl-10",   // space for left icon
+      action && "pr-10",   // space for right action
+      error  && "border-primary/60 ring-1 ring-primary/20 bg-red-50/30",
       field.className
     );
 
+    // ── Icon + action wrapper ──────────────────────────
     const renderWithIconAndAction = (element: React.ReactNode) => (
       <div className="relative">
-        {Icon && <Icon className="absolute left-3 top-3 h-4 w-4 text-dark/40 z-10" />}
+        {/* 
+          FIX: Use !w-4 !h-4 to override the createIcon default w-5 h-5 md:w-6 md:h-6.
+          Without !, Tailwind picks whichever class appears later in the stylesheet,
+          which is the default size — making icons too large inside inputs.
+        */}
+        {Icon && (
+          <Icon className="absolute left-3 top-1/2 -translate-y-1/2 !w-4 !h-4 text-gray-400 z-10 pointer-events-none" />
+        )}
         {element}
         {action && (
           <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
@@ -124,11 +134,11 @@ const Form: React.FC<FormProps> = ({
       </div>
     );
 
-    let element: React.ReactNode = null;
-
+    // ── Field renders ──────────────────────────────────
     switch (field.type) {
+
       case 'select':
-        element = renderWithIconAndAction(
+        return renderWithIconAndAction(
           <select
             id={field.name}
             name={field.name}
@@ -136,7 +146,7 @@ const Form: React.FC<FormProps> = ({
             onChange={handleChange}
             disabled={field.disabled || disabled}
             required={field.required}
-            className={cn(baseInputClass, "input-field appearance-none bg-white")}
+            className={cn(baseInputClass, "appearance-none cursor-pointer")}
           >
             <option value="">Select {field.label}</option>
             {field.options?.map((opt) => (
@@ -146,10 +156,9 @@ const Form: React.FC<FormProps> = ({
             ))}
           </select>
         );
-        break;
 
       case 'textarea':
-        element = renderWithIconAndAction(
+        return renderWithIconAndAction(
           <textarea
             id={field.name}
             name={field.name}
@@ -158,15 +167,19 @@ const Form: React.FC<FormProps> = ({
             disabled={field.disabled || disabled}
             required={field.required}
             rows={field.rows || 4}
-            className={cn(baseInputClass, "input-field resize-y min-h-[100px]")}
             placeholder={field.placeholder}
+            className={cn(
+              baseInputClass,
+              "resize-y min-h-[100px]",
+              // textarea icon sits at top, not vertically centered
+              Icon && "pt-2.5"
+            )}
           />
         );
-        break;
 
       case 'checkbox':
-        element = (
-          <div className="flex items-center gap-2">
+        return (
+          <div className="flex items-start gap-2.5 pt-1">
             <input
               type="checkbox"
               id={field.name}
@@ -174,27 +187,28 @@ const Form: React.FC<FormProps> = ({
               checked={!!value}
               onChange={handleChange}
               disabled={field.disabled || disabled}
-              className="w-4 h-4 rounded-xs border-gray-300 text-primary focus:ring-primary transition-colors"
+              className="w-4 h-4 mt-0.5 rounded-xs border-gray-300 accent-primary
+                focus:ring-primary transition-colors cursor-pointer shrink-0"
             />
-            <label 
+            <label
               htmlFor={field.name}
-              className="text-sm text-dark/70 cursor-pointer hover:text-primary transition-colors select-none"
+              className="text-sm text-dark/70 cursor-pointer hover:text-primary
+                transition-colors select-none leading-snug"
             >
               {field.label}
               {field.required && <span className="text-primary ml-1">*</span>}
             </label>
           </div>
         );
-        break;
 
       case 'date':
-        element = renderWithIconAndAction(
+        return renderWithIconAndAction(
           <DatePicker
             selected={value ? new Date(value) : null}
             onChange={(date: Date | null) => handleDateChange(field.name, date)}
             dateFormat="dd/MM/yyyy"
             placeholderText={field.placeholder || "Select date"}
-            className={cn(baseInputClass, "input-field")}
+            className={cn(baseInputClass, "cursor-pointer")}
             minDate={field.minDate}
             maxDate={field.maxDate}
             isClearable
@@ -205,10 +219,9 @@ const Form: React.FC<FormProps> = ({
             disabled={field.disabled || disabled}
           />
         );
-        break;
 
       case 'number':
-        element = renderWithIconAndAction(
+        return renderWithIconAndAction(
           <input
             type="number"
             id={field.name}
@@ -219,14 +232,13 @@ const Form: React.FC<FormProps> = ({
             required={field.required}
             min={field.min}
             max={field.max}
-            className={cn(baseInputClass, "input-field")}
             placeholder={field.placeholder}
+            className={baseInputClass}
           />
         );
-        break;
 
       default: // text, email, password, tel
-        element = renderWithIconAndAction(
+        return renderWithIconAndAction(
           <input
             type={field.type}
             id={field.name}
@@ -236,44 +248,51 @@ const Form: React.FC<FormProps> = ({
             disabled={field.disabled || disabled}
             required={field.required}
             pattern={field.pattern}
-            className={cn(baseInputClass, "input-field")}
             placeholder={field.placeholder}
+            className={baseInputClass}
           />
         );
     }
-
-    return element;
   };
 
   return (
-    <form onSubmit={onSubmit} className={className}>
+    <form onSubmit={onSubmit} className={className} noValidate>
       <div className={cn("grid gap-4 md:gap-5", getGridCols())}>
         {fields.map((field) => (
           <div
             key={field.name}
             className={cn(
-              "space-y-1",
               field.type === 'checkbox' ? "space-y-0" : "space-y-1.5",
-              field.colSpan === 'full' && "md:col-span-2",
-              field.colSpan === 'half' && layout === 'double' && "md:col-span-1"
+              field.colSpan === 'full'                              && "md:col-span-2",
+              field.colSpan === 'half' && layout === 'double'       && "md:col-span-1",
+              field.colSpan === 'half' && layout === 'triple'       && "md:col-span-1",
             )}
           >
+            {/* Label — not shown for checkbox (label is inline) */}
             {field.type !== 'checkbox' && (
-              <label 
-                htmlFor={field.name} 
-                className="block text-sm font-medium text-foreground"
+              <label
+                htmlFor={field.name}
+                className="block text-sm font-medium text-dark"
               >
                 {field.label}
-                {field.required && <span className="text-primary ml-1">*</span>}
+                {field.required && (
+                  <span className="text-primary ml-1" aria-hidden>*</span>
+                )}
               </label>
             )}
+
+            {/* Field */}
             {renderField(field)}
+
+            {/* Error message */}
             {errors[field.name] && (
-              <p className="text-xs text-primary flex items-center gap-1 mt-1">
-                <Icons.AlertCircle className="w-3 h-3" />
+              <p className="text-xs text-primary flex items-center gap-1 mt-1" role="alert">
+                <Icons.AlertCircle className="!w-3 !h-3 shrink-0" />
                 {errors[field.name]}
               </p>
             )}
+
+            {/* Helper text (only when no error) */}
             {field.helperText && !errors[field.name] && (
               <p className="text-xs text-dark/50 mt-1">{field.helperText}</p>
             )}
@@ -281,24 +300,19 @@ const Form: React.FC<FormProps> = ({
         ))}
       </div>
 
+      {/* Submit button */}
       {showSubmitButton && (
         <div className="mt-6 md:mt-8">
           <CustomButton
             type="submit"
             variant="primary"
             size="lg"
+            radius="xs"
             fullWidth
             loading={loading}
             disabled={disabled || loading}
-            className="transition-all duration-200 hover:shadow-md active:scale-95"
           >
-            {typeof submitText === 'string' ? (
-              <span className="flex items-center justify-center gap-2">
-                {submitText}
-              </span>
-            ) : (
-              submitText
-            )}
+            {typeof submitText === 'string' ? submitText : submitText}
           </CustomButton>
         </div>
       )}
