@@ -6,6 +6,7 @@ import FindDonorPage from "../../../features/findDoner/container/Finddonorpage";
 import LoginPage from "../../../features/login/ui/LoginPage";
 import DonateBlood from "../../../features/donateBlood/ui/DonateBlood";
 import RequestBloodPage from "../../../features/requestBlood/ui/RequestBloodPage";
+import BloodBankPage from "../../../features/bloodBank/ui/BloodBankPage";
 
 export const router = createBrowserRouter([
   {
@@ -26,6 +27,10 @@ export const router = createBrowserRouter([
       {
         path: "/request",
         element: <RequestBloodPage />,
+      },
+      {
+        path: "/blood-banks",
+        element: <BloodBankPage />,
       },
       {
         path: "/login",

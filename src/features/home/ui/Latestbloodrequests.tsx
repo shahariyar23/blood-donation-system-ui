@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import CustomButton from "../../../shared/button/CustomButton";
 import { Icons } from "../../../shared/icons/Icons";
 import MainContainer from "../../../shared/main-container/MainContainer";
@@ -62,6 +63,7 @@ const requests = [
 ];
 
 const LatestBloodRequests = () => {
+  const nevigate = useNavigate()
   return (
     <SectionContainer>
       <MainContainer>
@@ -152,7 +154,7 @@ const LatestBloodRequests = () => {
           <p className="text-gray-500 text-sm mb-5">
             Post a request and reach hundreds of nearby donors instantly.
           </p>
-          <CustomButton variant="primary" size="md" radius="full">
+          <CustomButton onClick={ () => nevigate('/request')} variant="primary" size="md" radius="full">
             Post a Blood Request
           </CustomButton>
         </div>
