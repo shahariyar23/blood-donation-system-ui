@@ -29,7 +29,7 @@ const BloodBankGrid = ({
     return (
       <div className="bg-white rounded-xs shadow-md p-10 sm:p-14 text-center">
         <div className="w-16 h-16 rounded-full bg-red-50 center-flex mx-auto mb-5">
-          <Icons.Hospital className="!w-7 !h-7 text-primary" />
+          <Icons.Hospital className="text-primary" />
         </div>
         <h3 className="font-serif font-bold text-dark text-lg mb-2">
           No blood banks found
@@ -56,13 +56,13 @@ const BloodBankGrid = ({
           of <span className="font-bold text-dark">{totalFiltered}</span> blood banks
         </p>
         <div className="flex items-center gap-1.5 text-xs text-gray-400">
-          <Icons.LocationPin className="!w-3 !h-3 text-primary" />
+          <Icons.LocationPin className=" text-primary" />
           Sorted by {SORT_OPTIONS.find(s => s.value === filters.sortBy)?.label}
         </div>
       </div>
 
       {/* Cards grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch">
         {banks.map((bank) => (
           <BloodBankCard
             key={bank.id}

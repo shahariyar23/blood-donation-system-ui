@@ -29,6 +29,7 @@ const Stars = ({ rating }: { rating: number }) => (
 const BloodBankCard = ({ bank, highlightGroup = "All" }: BloodBankCardProps) => {
   return (
     <div className={`donor-card hover:-translate-y-1 transition-all duration-300
+      flex flex-col h-full
       ${!bank.isOpen ? "bg-red-50" : "bg-white"}`}>
 
       {/* Top row */}
@@ -37,7 +38,7 @@ const BloodBankCard = ({ bank, highlightGroup = "All" }: BloodBankCardProps) => 
           {/* Icon — red tint when closed */}
           <div className={`w-11 h-11 rounded-xs center-flex shrink-0
             ${bank.isOpen ? "bg-primary/10" : "bg-primary/15"}`}>
-            <Icons.Hospital className="text-primary" />
+            <Icons.Hospital className="!w-5 !h-5 text-primary" />
           </div>
           <div className="min-w-0">
             <h3 className="font-semibold text-dark text-sm leading-snug line-clamp-2">
@@ -57,18 +58,18 @@ const BloodBankCard = ({ bank, highlightGroup = "All" }: BloodBankCardProps) => 
         </span>
       </div>
 
-      {/* Meta row */}
-      <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-xs text-gray-400 mb-4">
+      {/* Meta row — grid ensures consistent layout regardless of content length */}
+      <div className="grid grid-cols-3 gap-2 text-xs text-gray-400 mb-4">
         <span className="flex items-center gap-1">
-          <Icons.Location className="text-primary" />
+          <Icons.Location className=" text-primary shrink-0" />
           {bank.distance} km
         </span>
         <span className="flex items-center gap-1">
-          <Icons.Clock  />
+          <Icons.Clock className=" shrink-0" />
           {bank.hours}
         </span>
         <span className="flex items-center gap-1">
-          <Icons.Blood className=" text-primary" />
+          <Icons.Blood className="text-primary shrink-0" />
           {bank.totalUnits} units
         </span>
       </div>
@@ -109,8 +110,8 @@ const BloodBankCard = ({ bank, highlightGroup = "All" }: BloodBankCardProps) => 
         {bank.address}
       </p>
 
-      {/* CTA buttons — Row 1: Call + Email | Row 2: Directions full width */}
-      <div className="flex flex-col gap-2">
+      {/* CTA buttons — mt-auto pushes to bottom regardless of card height */}
+      <div className="flex flex-col gap-2 mt-auto">
         {/* Row 1 */}
         <div className="flex gap-2">
           <CustomButton
@@ -123,7 +124,7 @@ const BloodBankCard = ({ bank, highlightGroup = "All" }: BloodBankCardProps) => 
             Call Now
           </CustomButton>
           <CustomButton
-            variant="ghost"
+            variant="outline"
             size="xs"
             radius="xs"
             leftIcon={<Icons.Mail />}
@@ -139,7 +140,7 @@ const BloodBankCard = ({ bank, highlightGroup = "All" }: BloodBankCardProps) => 
           size="xs"
           radius="xs"
           fullWidth
-          leftIcon={<Icons.Location  />}
+          leftIcon={<Icons.Location />}
         >
           Get Directions
         </CustomButton>
