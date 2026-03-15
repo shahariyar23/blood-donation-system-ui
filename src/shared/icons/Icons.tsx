@@ -12,24 +12,19 @@ import {
   FaSignOutAlt,
   FaFacebook
 } from "react-icons/fa";
-
 import { MdDashboard, MdEmail, MdBloodtype } from "react-icons/md";
 import { GrLocationPin } from "react-icons/gr";
-
-
-import { AiOutlineMenu, AiOutlineSetting } from "react-icons/ai";
-
-import { BsCheckCircleFill, BsClockHistory, BsInstagram, BsMailbox, BsTrash } from "react-icons/bs";
+import { AiOutlineLoading, AiOutlineMenu, AiOutlineSetting } from "react-icons/ai";
+import { BsCheckCircleFill, BsClockHistory, BsInstagram, BsMailbox, BsShield, BsTrash } from "react-icons/bs";
 import { CiTwitter } from "react-icons/ci";
-
-
 import { CgClose, CgCopyright } from "react-icons/cg";
-
 import { IoIosArrowBack, IoIosArrowForward, IoMdArrowForward } from "react-icons/io";
 import { LuHandshake } from "react-icons/lu";
 import { CiClock2 } from "react-icons/ci";
 import { FiPlus } from "react-icons/fi";
 import { RxCross2 } from "react-icons/rx";
+import { IoAlertCircleOutline } from "react-icons/io5";
+
 
 
 
@@ -84,5 +79,8 @@ export const Icons = {
   Plus: createIcon(FiPlus),
   Cross: createIcon(RxCross2),
   Arrow: createIcon(IoIosArrowForward),
-  ArrowBack: createIcon(IoIosArrowBack )
+  ArrowBack: createIcon(IoIosArrowBack),
+  AlertCircle: createIcon(IoAlertCircleOutline),
+  Loading: createIcon(AiOutlineLoading),
+  Shield: createIcon(BsShield)
 };

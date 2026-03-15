@@ -3,6 +3,11 @@ import MainLayout from "../../layout/MainLayout";
 import Home from "../../../features/home/container/Home";
 import NotFound from "../../../features/not-found/NotFound";
 import FindDonorPage from "../../../features/findDoner/container/Finddonorpage";
+import LoginPage from "../../../features/login/ui/LoginPage";
+import DonateBlood from "../../../features/donateBlood/ui/DonateBlood";
+import RequestBloodPage from "../../../features/requestBlood/ui/RequestBloodPage";
+import BloodBankPage from "../../../features/bloodBank/ui/BloodBankPage";
+import AboutPage from "../../../features/about/ui/About";
 
 export const router = createBrowserRouter([
   {
@@ -17,12 +22,24 @@ export const router = createBrowserRouter([
         element: <FindDonorPage />,
       },
       {
-        path: "/blogs",
-        element: <Home />,
+        path: "/donate",
+        element: <DonateBlood />,
       },
       {
-        path: "/notice",
-        element: <Home />,
+        path: "/request",
+        element: <RequestBloodPage />,
+      },
+      {
+        path: "/blood-banks",
+        element: <BloodBankPage />,
+      },
+      {
+        path: "/about",
+        element: <AboutPage />,
+      },
+      {
+        path: "/login",
+        element: <LoginPage />,
       },
       {
         path: "*",
