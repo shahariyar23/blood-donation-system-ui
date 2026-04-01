@@ -35,6 +35,7 @@ const LoginPage = () => {
     if (!values.password) { setErrors({ password: "Password is required" }); return; }
     setErrors({});
     setLoading(true);
+    console.log(values, "login")
     setTimeout(() => { setLoading(false); setSuccess(true); }, 2000);
   };
 
