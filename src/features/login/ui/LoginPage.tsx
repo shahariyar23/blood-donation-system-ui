@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Form from "../../../shared/components/Form";
 import type { Field } from "../../../shared/components/Form";
 import { Icons } from "../../../shared/icons/Icons";
+import { useLocation } from "../../../hooks/useLocation";
 
 // ── Validation ─────────────────────────────────────────
 const validateIdentifier = (value: string): string | null => {
@@ -28,17 +29,50 @@ const LoginPage = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const identifierError = validateIdentifier(values.identifier);
-    if (identifierError) { setErrors({ identifier: identifierError }); return; }
-    if (!values.password) { setErrors({ password: "Password is required" }); return; }
-    setErrors({});
-    setLoading(true);
-    console.log(values, "login")
-    setTimeout(() => { setLoading(false); setSuccess(true); }, 2000);
+
+const { getLocation} = useLocation();
+
+
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  const identifierError = validateIdentifier(values.identifier);
+  if (identifierError) {
+    setErrors({ identifier: identifierError });
+    return;
+  }
+
+  if (!values.password) {
+    setErrors({ password: "Password is required" });
+    return;
+  }
+
+  setErrors({});
+  setLoading(true);
+
+  // 🔥 Get user location
+  const location = await getLocation();
+
+  console.log("LOGIN LOCATION:", location);
+
+  // 🔥 Send login data
+  const payload = {
+    identifier: values.identifier,
+    password: values.password,
+    location: location
+      ? location
+      : null,
   };
 
+  console.log("LOGIN PAYLOAD:", payload);
+
+  // simulate API
+  setTimeout(() => {
+    setLoading(false);
+    setSuccess(true);
+  }, 2000);
+};
+  
   const fields: Field[] = [
     {
       name:        "identifier",
