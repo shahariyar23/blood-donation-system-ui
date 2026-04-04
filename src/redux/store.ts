@@ -1,5 +1,4 @@
 import { configureStore } from "@reduxjs/toolkit";
-
 import storage from "redux-persist/lib/storage";
 
 import {
@@ -12,24 +11,44 @@ import {
   PURGE,
   REGISTER,
 } from "redux-persist";
-import Reduxslices from "./slices/userSlice";
 
+import userReducer from "./slices/userSlice";
+
+//  Persist config
 const persistConfig = {
-  key: "root",
+  key: "user",
   version: 1,
   storage,
+  blacklist: ["token"],
 };
 
-const persistedReducer = persistReducer(persistConfig, Reduxslices);
+//  Wrap reducer
+const persistedReducer = persistReducer(persistConfig, userReducer);
 
+// 🔥 Store
 export const store = configureStore({
-  reducer: { reduxSlice: persistedReducer },
+  reducer: {
+    user: persistedReducer, 
+  },
+
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+        ignoredActions: [
+          FLUSH,
+          REHYDRATE,
+          PAUSE,
+          PERSIST,
+          PURGE,
+          REGISTER,
+        ],
       },
     }),
 });
 
+// Persistor
 export const persistor = persistStore(store);
+
+// Types
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;

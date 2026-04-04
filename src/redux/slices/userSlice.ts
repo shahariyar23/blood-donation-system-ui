@@ -53,9 +53,10 @@ const initialState: UserState = {
   isLoading: false,
 };
 
+
 // ── Slice ──────────────────────────────────────────────────
 const userSlice = createSlice({
-  name: "reduxSlice",
+  name: "user",
   initialState,
   reducers: {
     // After POST /api/auth/login
@@ -69,14 +70,14 @@ const userSlice = createSlice({
       state.isLoading = false;
     },
 
-    // ✅ After GET /api/auth/me (re-hydrate user on app reload)
+    //After GET /api/auth/me (re-hydrate user on app reload)
     setAuthUser: (state, action: PayloadAction<IReduxUser>) => {
       state.isAuthenticated = true;
       state.user = action.payload;
       state.isLoading = false;
     },
 
-    // ✅ After POST /api/auth/logout
+    //After POST /api/auth/logout
     clearUser: (state) => {
       state.isAuthenticated = false;
       state.user = null;
@@ -84,26 +85,26 @@ const userSlice = createSlice({
       state.isLoading = false;
     },
 
-    // ✅ After profile update (partial user fields only)
+    //After profile update (partial user fields only)
     updateUser: (state, action: PayloadAction<Partial<IReduxUser>>) => {
       if (state.user) {
         state.user = { ...state.user, ...action.payload };
       }
     },
 
-    // ✅ Toggle donor availability (isAvailable field)
+    //Toggle donor availability (isAvailable field)
     setAvailability: (state, action: PayloadAction<boolean>) => {
       if (state.user) {
         state.user.isAvailable = action.payload;
       }
     },
 
-    // ✅ Update access token (after POST /api/auth/refresh-token)
+    // Update access token (after POST /api/auth/refresh-token)
     setToken: (state, action: PayloadAction<string>) => {
       state.token = action.payload;
     },
 
-    // ✅ Loading state (when calling /me on startup)
+    //Loading state (when calling /me on startup)
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
     },

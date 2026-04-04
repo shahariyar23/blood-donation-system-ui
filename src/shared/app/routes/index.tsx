@@ -8,6 +8,8 @@ import DonateBlood from "../../../features/donateBlood/ui/DonateBlood";
 import RequestBloodPage from "../../../features/requestBlood/ui/RequestBloodPage";
 import BloodBankPage from "../../../features/bloodBank/ui/BloodBankPage";
 import AboutPage from "../../../features/about/ui/About";
+import GuestRoute from "./GuestRoute";
+import ProtectedRoute from "./ProtectedRoute";
 
 export const router = createBrowserRouter([
   {
@@ -19,19 +21,35 @@ export const router = createBrowserRouter([
       },
       {
         path: "/find-donor",
-        element: <FindDonorPage />,
+        element: (
+          <ProtectedRoute>
+            <FindDonorPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/donate",
-        element: <DonateBlood />,
+        element: (
+          <ProtectedRoute>
+            <DonateBlood />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/request",
-        element: <RequestBloodPage />,
+        element: (
+          <ProtectedRoute>
+            <RequestBloodPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/blood-banks",
-        element: <BloodBankPage />,
+        element: (
+          <ProtectedRoute>
+            <BloodBankPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/about",
@@ -39,7 +57,11 @@ export const router = createBrowserRouter([
       },
       {
         path: "/login",
-        element: <LoginPage />,
+        element: (
+          <GuestRoute>
+            <LoginPage />
+          </GuestRoute>
+        ),
       },
       {
         path: "*",

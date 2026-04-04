@@ -3,8 +3,9 @@ import { type IReduxUser } from "../../../redux/slices/userSlice";
 
 // ── Types ──────────────────────────────────────────────────
 export interface LoginPayload {
-  email: string;
+  identifier: string;
   password: string;
+  location: object;
 }
 
 export interface RegisterPayload {
@@ -15,9 +16,9 @@ export interface RegisterPayload {
 }
 
 export interface AuthResponse {
-  user: IReduxUser;
-  token: string;
-  message: string;
+  data:{user: IReduxUser;
+  accessToken: string;
+  message: string;}
 }
 
 // ── API Calls ──────────────────────────────────────────────
@@ -25,6 +26,7 @@ export interface AuthResponse {
 // POST /api/auth/register
 export const registerApi = async (data: RegisterPayload): Promise<AuthResponse> => {
   const res = await api.post("/auth/register", data);
+  console.log(res.data)
   return res.data;
 };
 
@@ -37,7 +39,7 @@ export const loginApi = async (data: LoginPayload): Promise<AuthResponse> => {
 // GET /api/auth/me
 export const getAuthUserApi = async (): Promise<IReduxUser> => {
   const res = await api.get("/auth/me");
-  return res.data.user;
+  return res.data.data;
 };
 
 // POST /api/auth/logout

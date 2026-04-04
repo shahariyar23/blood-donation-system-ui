@@ -15,7 +15,7 @@ const Api = axios.create({
 // Auto-attach access token from Redux to every request
 Api.interceptors.request.use(
   (config) => {
-    const token = store.getState().reduxSlice.token;
+    const token = store.getState().user.token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -31,25 +31,26 @@ Api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // skip refresh endpoint itself
+    if (originalRequest.url.includes("/auth/refresh-token")) {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        // Calls POST /api/auth/refresh-token (cookie sent automatically)
         const res = await Api.post("/auth/refresh-token");
         const newToken = res.data.token;
 
-        // Save new token in Redux + localStorage (via redux-persist)
         store.dispatch(setToken(newToken));
 
-        // Retry the original failed request with new token
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return Api(originalRequest);
 
       } catch {
-        // Refresh token also expired → force logout
         store.dispatch(clearUser());
-        window.location.href = "/login"; // redirect to login
+        window.location.href = "/login";
       }
     }
 
