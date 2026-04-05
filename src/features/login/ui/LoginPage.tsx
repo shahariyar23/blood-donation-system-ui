@@ -1,34 +1,27 @@
 import { useState } from "react";
-import { loginApi } from "../service/loginService";
+import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useLocation } from "../../../hooks/useLocation";
-import { setUser } from "../../../redux/slices/userSlice";
-import { useDispatch } from "react-redux";
-import { Link } from "react-router-dom";
+import { loginApi } from "../service/loginService";
 
+// ── Component ──────────────────────────────────────────────
 export default function LoginPage() {
-  const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [identifier, setIdentifier] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [showPass, setShowPass] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const dispatch = useDispatch();
+  const {getLocation} = useLocation()
 
-  const { getLocation } = useLocation();
-
-  const validate = () => {
+  const validate = (): Record<string, string> => {
     const errs: Record<string, string> = {};
     if (!identifier.trim()) errs.identifier = "Email or phone is required";
     if (!password) errs.password = "Password is required";
-    else if (password.length < 8)
-      errs.password = "Password must be at least 8 characters";
     return errs;
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    console.log("submitted", e.defaultPrevented);
-
+  const handleSubmit = async (): Promise<void> => {
+    // e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) {
       setErrors(errs);
@@ -38,50 +31,36 @@ export default function LoginPage() {
     setErrors({});
     setLoading(true);
 
-    // location is optional — never blocks login
-    let locationData = null;
     try {
-      locationData = await getLocation();
-    } catch {
-      // silently ignore
-    }
-
-    const payload: any = {
-      identifier: identifier.trim(),
-      password,
-    };
-
-    if (locationData) {
-      payload.location = {
-        city:
+      const locationData = await getLocation();
+      console.log(locationData)
+      const res = await loginApi({identifier, password, location: {city:
           locationData?.details?.city ||
-          locationData.details?.town ||
-          locationData.details?.village ||
-          locationData.details?.quarter ||
+          locationData?.details?.town ||
+          locationData?.details?.village ||
+          locationData?.details?.quarter ||
           "",
-        country: locationData.details?.country || "",
-        country_code: locationData.details?.country_code || "",
-        county: locationData.details?.county || "",
-        postcode: locationData.details?.postcode || "",
-        state: locationData.details?.state || "",
-        state_district: locationData.details?.state_district || "",
+        country: locationData?.details?.country || "",
+        country_code: locationData?.details?.country_code || "",
+        county: locationData?.details?.county || "",
+        postcode: locationData?.details?.postcode || "",
+        state: locationData?.details?.state || "",
+        state_district: locationData?.details?.state_district || "",
         coordinates: {
-          lat: locationData.latitude,
-          lng: locationData.longitude,
-        },
+          lat: locationData?.latitude,
+          lng: locationData?.longitude}}});
+          console.log(res)
+      // toast.success(res?.message);
+      // dispatch(setUser({ user: res.data?.user, token: res.data?.accessToken }));
+    } catch (err: unknown) {
+      console.log(err);
+      
+      const error = err as {
+        response?: { data?: { message?: string }; status?: number };
       };
-    }
-
-    try {
-      const res = await loginApi(payload);
-      toast.success(res.data?.message || "Logged in successfully");
-      console.log(res);
-      dispatch(setUser({ user: res.data.user, token: res.data.accessToken }));
-      // navigate("/dashboard")
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || "Login failed";
+      const msg = error?.response?.data?.message || "Login failed";
       toast.error(msg);
-      if (err?.response?.status === 423) {
+      if (error?.response?.status === 401 || error?.response?.status === 423) {
         setErrors({ identifier: msg });
       }
     } finally {
@@ -89,7 +68,11 @@ export default function LoginPage() {
     }
   };
 
-  // ── shared styles ──────────────────────────────────
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (e.key === "Enter" && !loading) void handleSubmit();
+  };
+
+  // ── Styles ─────────────────────────────────────────────
   const inputBase: React.CSSProperties = {
     width: "100%",
     padding: "10px 14px",
@@ -127,14 +110,15 @@ export default function LoginPage() {
     gap: "4px",
   };
 
-  const onFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+  const onFocus = (e: React.FocusEvent<HTMLInputElement>): void => {
     e.target.style.borderColor = "#c0392b";
     e.target.style.boxShadow = "0 0 0 3px rgba(192,57,43,0.1)";
     e.target.style.background = "#ffffff";
   };
 
   const onBlur =
-    (hasErr: boolean) => (e: React.FocusEvent<HTMLInputElement>) => {
+    (hasErr: boolean) =>
+    (e: React.FocusEvent<HTMLInputElement>): void => {
       e.target.style.borderColor = hasErr ? "#ef4444" : "#e5e7eb";
       e.target.style.boxShadow = "none";
       e.target.style.background = hasErr ? "#fff5f5" : "#f9fafb";
@@ -157,7 +141,6 @@ export default function LoginPage() {
           color: "#fff",
         }}
       >
-        {/* glow blobs */}
         <div
           style={{
             position: "absolute",
@@ -185,7 +168,6 @@ export default function LoginPage() {
           }}
         />
 
-        {/* top section */}
         <div style={{ position: "relative", zIndex: 1 }}>
           <div
             style={{
@@ -259,7 +241,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* stats */}
         <div
           style={{
             position: "relative",
@@ -269,12 +250,14 @@ export default function LoginPage() {
             gap: "12px",
           }}
         >
-          {[
-            { title: "12K+", sub: "Active donors" },
-            { title: "98%", sub: "Match success" },
-            { title: "64", sub: "Districts covered" },
-            { title: "3min", sub: "Avg response" },
-          ].map((s) => (
+          {(
+            [
+              { title: "12K+", sub: "Active donors" },
+              { title: "98%", sub: "Match success" },
+              { title: "64", sub: "Districts covered" },
+              { title: "3min", sub: "Avg response" },
+            ] as const
+          ).map((s) => (
             <div
               key={s.sub}
               style={{
@@ -313,7 +296,6 @@ export default function LoginPage() {
         }}
       >
         <div style={{ width: "100%", maxWidth: "420px" }}>
-          {/* header */}
           <div style={{ marginBottom: "24px" }}>
             <h2
               style={{
@@ -331,7 +313,6 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* card */}
           <div
             style={{
               background: "#ffffff",
@@ -341,171 +322,191 @@ export default function LoginPage() {
               boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
             }}
           >
-            <form onSubmit={handleSubmit} noValidate>
-              {/* identifier */}
-              <div style={{ marginBottom: "16px" }}>
-                <label htmlFor="identifier" style={labelStyle}>
-                  Email or phone
-                  <span style={{ color: "#ef4444", marginLeft: "3px" }}>*</span>
-                </label>
+            {/* demo hint */}
+            <div
+              style={{
+                background: "#fef3c7",
+                border: "1px solid #fde68a",
+                borderRadius: "8px",
+                padding: "10px 14px",
+                marginBottom: "20px",
+                fontSize: "12px",
+                color: "#92400e",
+                lineHeight: "1.8",
+              }}
+            >
+              <strong>🔑 Demo credentials</strong>
+              <br />
+              Email: masudhasanantorsarker@gmail.com
+              <br />
+              Password: masud123
+            </div>
+
+            {/* identifier */}
+            <div style={{ marginBottom: "16px" }}>
+              <label htmlFor="identifier" style={labelStyle}>
+                Email or phone
+                <span style={{ color: "#ef4444", marginLeft: "3px" }}>*</span>
+              </label>
+              <input
+                id="identifier"
+                type="text"
+                value={identifier}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setIdentifier(e.target.value);
+                  setErrors((p) => ({ ...p, identifier: "" }));
+                }}
+                onFocus={onFocus}
+                onBlur={onBlur(!!errors.identifier)}
+                onKeyDown={onKeyDown}
+                placeholder="masudhasanantorsarker@gmail.com"
+                autoComplete="username"
+                style={errors.identifier ? inputError : inputBase}
+              />
+              {errors.identifier && (
+                <p style={errorText}>
+                  <span>⚠</span> {errors.identifier}
+                </p>
+              )}
+            </div>
+
+            {/* password */}
+            <div style={{ marginBottom: "8px" }}>
+              <label htmlFor="password" style={labelStyle}>
+                Password
+                <span style={{ color: "#ef4444", marginLeft: "3px" }}>*</span>
+              </label>
+              <div style={{ position: "relative" }}>
                 <input
-                  id="identifier"
-                  type="text"
-                  value={identifier}
-                  onChange={(e) => {
-                    setIdentifier(e.target.value);
-                    setErrors((p) => ({ ...p, identifier: "" }));
+                  id="password"
+                  type={showPass ? "text" : "password"}
+                  value={password}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setPassword(e.target.value);
+                    setErrors((p) => ({ ...p, password: "" }));
                   }}
                   onFocus={onFocus}
-                  onBlur={onBlur(!!errors.identifier)}
-                  placeholder="mostak@gmail.com or 01712345678"
-                  autoComplete="username"
-                  style={errors.identifier ? inputError : inputBase}
-                />
-                {errors.identifier && (
-                  <p style={errorText}>
-                    <span>⚠</span> {errors.identifier}
-                  </p>
-                )}
-              </div>
-
-              {/* password */}
-              <div style={{ marginBottom: "8px" }}>
-                <label htmlFor="password" style={labelStyle}>
-                  Password
-                  <span style={{ color: "#ef4444", marginLeft: "3px" }}>*</span>
-                </label>
-                <div style={{ position: "relative" }}>
-                  <input
-                    id="password"
-                    type={showPass ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      setErrors((p) => ({ ...p, password: "" }));
-                    }}
-                    onFocus={onFocus}
-                    onBlur={onBlur(!!errors.password)}
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                    style={{
-                      ...(errors.password ? inputError : inputBase),
-                      paddingRight: "44px",
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass(!showPass)}
-                    aria-label={showPass ? "Hide password" : "Show password"}
-                    style={{
-                      position: "absolute",
-                      right: "12px",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      color: "#9ca3af",
-                      fontSize: "16px",
-                      padding: "2px",
-                      lineHeight: "1",
-                    }}
-                  >
-                    {showPass ? "🙈" : "👁"}
-                  </button>
-                </div>
-                {errors.password && (
-                  <p style={errorText}>
-                    <span>⚠</span> {errors.password}
-                  </p>
-                )}
-              </div>
-
-              {/* forgot */}
-              <div style={{ textAlign: "right", marginBottom: "24px" }}>
-                <Link
-                  to="/forgot-password"
+                  onBlur={onBlur(!!errors.password)}
+                  onKeyDown={onKeyDown}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
                   style={{
-                    fontSize: "12px",
-                    color: "#6b7280",
-                    textDecoration: "none",
+                    ...(errors.password ? inputError : inputBase),
+                    paddingRight: "44px",
                   }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.color = "#c0392b")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.color = "#6b7280")
-                  }
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass((prev) => !prev)}
+                  aria-label={showPass ? "Hide password" : "Show password"}
+                  style={{
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#9ca3af",
+                    fontSize: "16px",
+                    padding: "2px",
+                    lineHeight: "1",
+                  }}
                 >
-                  Forgot password?
-                </Link>
+                  {showPass ? "🙈" : "👁"}
+                </button>
               </div>
+              {errors.password && (
+                <p style={errorText}>
+                  <span>⚠</span> {errors.password}
+                </p>
+              )}
+            </div>
 
-              {/* submit */}
-              <button
-                type="submit"
-                disabled={loading}
+            {/* forgot */}
+            <div style={{ textAlign: "right", marginBottom: "24px" }}>
+              <Link
+                to="/forgot-password"
                 style={{
-                  width: "100%",
-                  padding: "11px",
-                  background: loading ? "#e5a8a2" : "#c0392b",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: "6px",
-                  fontSize: "15px",
-                  fontWeight: "600",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  letterSpacing: "0.3px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-                  transition: "background 0.2s",
-                  fontFamily: "inherit",
+                  fontSize: "12px",
+                  color: "#6b7280",
+                  textDecoration: "none",
                 }}
-                onMouseEnter={(e) => {
-                  if (!loading) e.currentTarget.style.background = "#a93226";
-                }}
-                onMouseLeave={(e) => {
-                  if (!loading) e.currentTarget.style.background = "#c0392b";
-                }}
+                onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) =>
+                  (e.currentTarget.style.color = "#c0392b")
+                }
+                onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) =>
+                  (e.currentTarget.style.color = "#6b7280")
+                }
               >
-                {loading ? (
-                  <>
-                    <svg
-                      style={{
-                        width: "16px",
-                        height: "16px",
-                        animation: "spin 0.7s linear infinite",
-                      }}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        opacity="0.25"
-                      />
-                      <path
-                        fill="currentColor"
-                        opacity="0.75"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                      />
-                    </svg>
-                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-                    Signing in...
-                  </>
-                ) : (
-                  "Sign in →"
-                )}
-              </button>
-            </form>
+                Forgot password?
+              </Link>
+            </div>
+
+            {/* submit */}
+            <button
+              type="button"
+              onClick={() => void handleSubmit()}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "11px",
+                background: loading ? "#e5a8a2" : "#c0392b",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "6px",
+                fontSize: "15px",
+                fontWeight: "600",
+                cursor: loading ? "not-allowed" : "pointer",
+                letterSpacing: "0.3px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                transition: "background 0.2s",
+                fontFamily: "inherit",
+              }}
+              onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
+                if (!loading) e.currentTarget.style.background = "#a93226";
+              }}
+              onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
+                if (!loading) e.currentTarget.style.background = "#c0392b";
+              }}
+            >
+              {loading ? (
+                <>
+                  <svg
+                    style={{
+                      width: "16px",
+                      height: "16px",
+                      animation: "spin 0.7s linear infinite",
+                    }}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      opacity="0.25"
+                    />
+                    <path
+                      fill="currentColor"
+                      opacity="0.75"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    />
+                  </svg>
+                  <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                  Signing in...
+                </>
+              ) : (
+                "Sign in →"
+              )}
+            </button>
           </div>
 
-          {/* footer */}
           <p
             style={{
               textAlign: "center",
@@ -522,10 +523,10 @@ export default function LoginPage() {
                 fontWeight: "500",
                 textDecoration: "none",
               }}
-              onMouseEnter={(e) =>
+              onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) =>
                 (e.currentTarget.style.textDecoration = "underline")
               }
-              onMouseLeave={(e) =>
+              onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) =>
                 (e.currentTarget.style.textDecoration = "none")
               }
             >

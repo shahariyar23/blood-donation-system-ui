@@ -30,9 +30,19 @@ Api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const requestUrl = originalRequest?.url ?? "";
+    const shouldBypassAuthRecovery =
+      requestUrl.includes("/auth/login") ||
+      requestUrl.includes("/auth/register") ||
+      requestUrl.includes("/auth/forgot-password") ||
+      requestUrl.includes("/auth/reset-password");
 
     // skip refresh endpoint itself
-    if (originalRequest.url.includes("/auth/refresh-token")) {
+    if (
+      !originalRequest ||
+      requestUrl.includes("/auth/refresh-token") ||
+      shouldBypassAuthRecovery
+    ) {
       return Promise.reject(error);
     }
 

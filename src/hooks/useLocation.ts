@@ -3,7 +3,7 @@ import { useState } from "react";
 export interface LocationDetails {
   city?: string;
   quarter?: string;
-  road?:string;
+  road?: string;
   town?: string;
   village?: string;
   county?: string;
@@ -14,22 +14,30 @@ export interface LocationDetails {
   country_code?: string;
 }
 
+export interface LocationResult {
+  latitude: number;
+  longitude: number;
+  displayName: string;
+  details: LocationDetails;
+}
+
 const reverseGeocode = async (lat: number, lon: number) => {
   try {
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`;
 
-    const res = await fetch(url, {
-      headers: { "User-Agent": "BloodConnect/1.0" },
-    });
-
-    if (!res.ok) throw new Error("Geocode failed");
+    const res = await fetch(url);
+    if (!res.ok) throw new Error();
 
     const data = await res.json();
     const addr = data.address || {};
 
     return {
       displayName:
-        addr.city || addr.town || addr.village || addr.county || "Unknown location",
+        addr.city ||
+        addr.town ||
+        addr.village ||
+        addr.county ||
+        "Unknown location",
       details: addr,
     };
   } catch {
@@ -42,70 +50,40 @@ const reverseGeocode = async (lat: number, lon: number) => {
 
 export const useLocation = () => {
   const [loading, setLoading] = useState(false);
-  const [helper, setHelper] = useState("Click 📍 to auto-detect location");
 
-  const getLocation = async () => {
-  if (!navigator.geolocation) {
-    setHelper("Geolocation not supported");
-    return null;
-  }
+  const getLocation = async (): Promise<LocationResult | null> => {
+    if (!navigator.geolocation) return null;
 
-  setLoading(true);
-  setHelper("Detecting location...");
+    setLoading(true);
 
-  return await new Promise((resolve) => {
-    let resolved = false;
+    return await new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const { latitude, longitude } = pos.coords;
 
-    const timeout = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        setHelper("Location timeout");
-        setLoading(false);
-        resolve(null);
-      }
-    }, 10000); // 10s timeout
+            const geo = await reverseGeocode(latitude, longitude);
 
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        if (resolved) return;
-        resolved = true;
-        clearTimeout(timeout);
-
-        try {
-          const { latitude, longitude } = pos.coords;
-
-          const { displayName, details } = await reverseGeocode(
-            latitude,
-            longitude
-          );
-
-          setHelper("✓ Location detected");
-
-          resolve({
-            latitude,
-            longitude,
-            displayName,
-            details,
-          });
-        } catch {
-          setHelper("Failed to detect location");
-          resolve(null);
-        } finally {
+            resolve({
+              latitude,
+              longitude,
+              displayName: geo.displayName,
+              details: geo.details,
+            });
+          } catch {
+            resolve(null);
+          } finally {
+            setLoading(false);
+          }
+        },
+        () => {
           setLoading(false);
+          resolve(null);
         }
-      },
-      () => {
-        if (resolved) return;
-        resolved = true;
-        clearTimeout(timeout);
+      );
+    });
+  };
 
-        setHelper("Permission denied");
-        setLoading(false);
-        resolve(null);
-      }
-    );
-  });
+  return { getLocation, loading };
 };
 
-  return { getLocation, loading, helper };
-};
