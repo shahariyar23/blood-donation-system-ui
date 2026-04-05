@@ -10,6 +10,9 @@ import BloodBankPage from "../../../features/bloodBank/ui/BloodBankPage";
 import AboutPage from "../../../features/about/ui/About";
 import GuestRoute from "./GuestRoute";
 import ProtectedRoute from "./ProtectedRoute";
+import RegisterPage from "../../../features/register/ui/RegisterPage";
+import ForgotPasswordPage from "../../../features/forgotPassword/ui/ForgotPassword";
+import ResetPasswordPage from "../../../features/restPassword/ui/ResetPasswordPage";
 
 export const router = createBrowserRouter([
   {
@@ -60,6 +63,30 @@ export const router = createBrowserRouter([
         element: (
           <GuestRoute>
             <LoginPage />
+          </GuestRoute>
+        ),
+      },
+      {
+        path: "/forgot-password",
+        element: (
+          <GuestRoute>
+            <ForgotPasswordPage />
+          </GuestRoute>
+        ),
+      },
+      {
+        path: "/reset-password",
+        element: (
+          <GuestRoute>
+            <ResetPasswordPage />
+          </GuestRoute>
+        ),
+      },
+      {
+        path: "/register",
+        element: (
+          <GuestRoute>
+            <RegisterPage />
           </GuestRoute>
         ),
       },

@@ -1,14 +1,21 @@
 // src/shared/form/Form.tsx
-import React from 'react';
-import CustomButton from '../button/CustomButton';
-import { Icons } from '../icons/Icons';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
+import React from "react";
+import CustomButton from "../button/CustomButton";
+import { Icons } from "../icons/Icons";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { cn } from "../../lib/utils";
 
 export type FieldType =
-  | 'text' | 'email' | 'password' | 'tel' | 'number'
-  | 'select' | 'textarea' | 'checkbox' | 'date';
+  | "text"
+  | "email"
+  | "password"
+  | "tel"
+  | "number"
+  | "select"
+  | "textarea"
+  | "checkbox"
+  | "date";
 
 export interface FieldOption {
   value: string;
@@ -27,7 +34,7 @@ export interface Field {
   min?: number;
   max?: number;
   rows?: number;
-  colSpan?: 'full' | 'half';
+  colSpan?: "full" | "half";
   disabled?: boolean;
   helperText?: string;
   icon?: React.ElementType;
@@ -40,13 +47,13 @@ interface FormProps {
   fields: Field[];
   values: Record<string, any>;
   onChange: (name: string, value: any) => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   errors?: Record<string, string>;
   fieldActions?: Record<string, React.ReactNode>;
   submitText?: string | React.ReactNode;
   loading?: boolean;
   disabled?: boolean;
-  layout?: 'single' | 'double' | 'triple';
+  layout?: "single" | "double" | "triple";
   className?: string;
   footer?: React.ReactNode;
   showSubmitButton?: boolean;
@@ -59,46 +66,51 @@ const Form: React.FC<FormProps> = ({
   onSubmit,
   errors = {},
   fieldActions = {},
-  submitText = 'Submit',
+  submitText = "Submit",
   loading = false,
   disabled = false,
-  layout = 'single',
-  className = '',
+  layout = "single",
+  className = "",
   footer,
   showSubmitButton = true,
 }) => {
-  const hasCheckbox = fields.some(f => f.type === 'checkbox');
+  const hasCheckbox = fields.some((f) => f.type === "checkbox");
 
   const getGridCols = () => {
-    if (hasCheckbox) return 'grid-cols-1';
+    if (hasCheckbox) return "grid-cols-1";
     switch (layout) {
-      case 'double': return 'grid-cols-1 md:grid-cols-2';
-      case 'triple': return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3';
-      default:       return 'grid-cols-1';
+      case "double":
+        return "grid-cols-1 md:grid-cols-2";
+      case "triple":
+        return "grid-cols-1 md:grid-cols-2 lg:grid-cols-3";
+      default:
+        return "grid-cols-1";
     }
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
   ) => {
     const { name, type, value } = e.target;
     let newValue: any = value;
-    if (type === 'checkbox') {
+    if (type === "checkbox") {
       newValue = (e.target as HTMLInputElement).checked;
-    } else if (type === 'number') {
-      newValue = value === '' ? '' : Number(value);
+    } else if (type === "number") {
+      newValue = value === "" ? "" : Number(value);
     }
     onChange(name, newValue);
   };
 
   const handleDateChange = (name: string, date: Date | null) => {
-    onChange(name, date ? date.toISOString().split('T')[0] : '');
+    onChange(name, date ? date.toISOString().split("T")[0] : "");
   };
 
   const renderField = (field: Field) => {
-    const error  = errors[field.name];
-    const value  = values[field.name] ?? '';
-    const Icon   = field.icon;
+    const error = errors[field.name];
+    const value = values[field.name] ?? "";
+    const Icon = field.icon;
     const action = fieldActions[field.name];
 
     // ── Base input styles ──────────────────────────────
@@ -108,10 +120,10 @@ const Form: React.FC<FormProps> = ({
       "transition-all duration-200 outline-none",
       "focus:border-primary focus:ring-2 focus:ring-primary/20",
       "disabled:opacity-50 disabled:cursor-not-allowed",
-      Icon   && "pl-10",   // space for left icon
-      action && "pr-10",   // space for right action
-      error  && "border-primary/60 ring-1 ring-primary/20 bg-red-50/30",
-      field.className
+      Icon && "pl-10", // space for left icon
+      action && "pr-10", // space for right action
+      error && "border-primary/60 ring-1 ring-primary/20 bg-red-50/30",
+      field.className,
     );
 
     // ── Icon + action wrapper ──────────────────────────
@@ -136,8 +148,7 @@ const Form: React.FC<FormProps> = ({
 
     // ── Field renders ──────────────────────────────────
     switch (field.type) {
-
-      case 'select':
+      case "select":
         return renderWithIconAndAction(
           <select
             id={field.name}
@@ -154,10 +165,10 @@ const Form: React.FC<FormProps> = ({
                 {opt.label}
               </option>
             ))}
-          </select>
+          </select>,
         );
 
-      case 'textarea':
+      case "textarea":
         return renderWithIconAndAction(
           <textarea
             id={field.name}
@@ -172,12 +183,12 @@ const Form: React.FC<FormProps> = ({
               baseInputClass,
               "resize-y min-h-[100px]",
               // textarea icon sits at top, not vertically centered
-              Icon && "pt-2.5"
+              Icon && "pt-2.5",
             )}
-          />
+          />,
         );
 
-      case 'checkbox':
+      case "checkbox":
         return (
           <div className="flex items-start gap-2.5 pt-1">
             <input
@@ -201,7 +212,7 @@ const Form: React.FC<FormProps> = ({
           </div>
         );
 
-      case 'date':
+      case "date":
         return renderWithIconAndAction(
           <DatePicker
             selected={value ? new Date(value) : null}
@@ -217,10 +228,10 @@ const Form: React.FC<FormProps> = ({
             yearDropdownItemNumber={15}
             wrapperClassName="w-full"
             disabled={field.disabled || disabled}
-          />
+          />,
         );
 
-      case 'number':
+      case "number":
         return renderWithIconAndAction(
           <input
             type="number"
@@ -234,7 +245,7 @@ const Form: React.FC<FormProps> = ({
             max={field.max}
             placeholder={field.placeholder}
             className={baseInputClass}
-          />
+          />,
         );
 
       default: // text, email, password, tel
@@ -250,33 +261,46 @@ const Form: React.FC<FormProps> = ({
             pattern={field.pattern}
             placeholder={field.placeholder}
             className={baseInputClass}
-          />
+          />,
         );
     }
   };
 
   return (
-    <form onSubmit={onSubmit} className={className} noValidate>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault(); // ✅ ALWAYS stop reload first
+        onSubmit(e); // then run your logic
+      }}
+      className={className}
+      noValidate
+    >
       <div className={cn("grid gap-4 md:gap-5", getGridCols())}>
         {fields.map((field) => (
           <div
             key={field.name}
             className={cn(
-              field.type === 'checkbox' ? "space-y-0" : "space-y-1.5",
-              field.colSpan === 'full'                              && "md:col-span-2",
-              field.colSpan === 'half' && layout === 'double'       && "md:col-span-1",
-              field.colSpan === 'half' && layout === 'triple'       && "md:col-span-1",
+              field.type === "checkbox" ? "space-y-0" : "space-y-1.5",
+              field.colSpan === "full" && "md:col-span-2",
+              field.colSpan === "half" &&
+                layout === "double" &&
+                "md:col-span-1",
+              field.colSpan === "half" &&
+                layout === "triple" &&
+                "md:col-span-1",
             )}
           >
             {/* Label — not shown for checkbox (label is inline) */}
-            {field.type !== 'checkbox' && (
+            {field.type !== "checkbox" && (
               <label
                 htmlFor={field.name}
                 className="block text-sm font-medium text-dark"
               >
                 {field.label}
                 {field.required && (
-                  <span className="text-primary ml-1" aria-hidden>*</span>
+                  <span className="text-primary ml-1" aria-hidden>
+                    *
+                  </span>
                 )}
               </label>
             )}
@@ -286,7 +310,10 @@ const Form: React.FC<FormProps> = ({
 
             {/* Error message */}
             {errors[field.name] && (
-              <p className="text-xs text-primary flex items-center gap-1 mt-1" role="alert">
+              <p
+                className="text-xs text-primary flex items-center gap-1 mt-1"
+                role="alert"
+              >
                 <Icons.AlertCircle className="!w-3 !h-3 shrink-0" />
                 {errors[field.name]}
               </p>
@@ -312,7 +339,7 @@ const Form: React.FC<FormProps> = ({
             loading={loading}
             disabled={disabled || loading}
           >
-            {typeof submitText === 'string' ? submitText : submitText}
+            {typeof submitText === "string" ? submitText : submitText}
           </CustomButton>
         </div>
       )}

@@ -73,19 +73,19 @@
 
   /* Main Button (Donate / Request) */
   .btn-primary{
-    @apply bg-primary text-white px-6 py-2 font-semibold rounded-lg
+    @apply bg-primary text-white px-6 py-2 font-semibold rounded-xs
            hover:bg-red-700 transition-all duration-300;
   }
 
   /* Secondary Button */
   .btn-secondary{
-    @apply bg-secondary text-white px-6 py-2 rounded-lg
+    @apply bg-secondary text-white px-6 py-2 rounded-xs
            hover:bg-slate-800 transition-all duration-300;
   }
 
   /* Outline Button */
   .btn-outline{
-    @apply border border-primary text-primary px-6 py-2 rounded-lg
+    @apply border border-primary text-primary px-6 py-2 rounded-xs
            hover:bg-primary hover:text-white
            transition-all duration-300;
   }
@@ -117,7 +117,7 @@
 
   /* Input field */
   .input-field{
-    @apply w-full border border-gray-300 rounded-lg px-4 py-2
+    @apply w-full border border-gray-300 rounded-xs px-4 py-2
            focus:outline-none focus:ring-2 focus:ring-primary;
   }
 

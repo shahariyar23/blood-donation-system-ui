@@ -45,6 +45,7 @@ console.log(user, "in nabbar")
       navigate("/login");
     }
   };
+  console.log(user)
 
   // ── Close dropdown on outside click ─────────────────
   useEffect(() => {

@@ -1,365 +1,539 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import Form from "../../../shared/components/Form";
-import type { Field } from "../../../shared/components/Form";
-import { Icons } from "../../../shared/icons/Icons";
-import { useLocation as userLocation } from "../../../hooks/useLocation";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { loginApi, type LoginPayload } from "../service/loginService";
-import { setUser } from "../../../redux/slices/userSlice";
+import { loginApi } from "../service/loginService";
 import toast from "react-hot-toast";
-import type { RootState } from "../../../redux/store";
+import { useLocation } from "../../../hooks/useLocation";
+import { setUser } from "../../../redux/slices/userSlice";
+import { useDispatch } from "react-redux";
+import { Link } from "react-router-dom";
 
-// ── Validation ─────────────────────────────────────────
-const validateIdentifier = (value: string): string | null => {
-  if (!value) return "Email or phone is required";
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (emailRegex.test(value)) return null;
-  const digits = value.replace(/\D/g, "");
-  const bdPhone = /^(01[3-9]\d{8})$|^(8801[3-9]\d{8})$/;
-  if (bdPhone.test(digits)) return null;
-  return "Enter a valid email or Bangladeshi phone number";
-};
-
-const LoginPage = () => {
-  const dispatch = useDispatch();
-  const { user, isAuthenticated } = useSelector((s: RootState) => s.user);
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [values, setValues] = useState({ identifier: "", password: "" });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+export default function LoginPage() {
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const from = location.state?.from?.pathname || "/";
-console.log(user, isAuthenticated)
-  const handleChange = (name: string, value: any) => {
-    setValues((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => {
-        const e = { ...prev };
-        delete e[name];
-        return e;
-      });
-    }
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const dispatch = useDispatch();
+
+  const { getLocation } = useLocation();
+
+  const validate = () => {
+    const errs: Record<string, string> = {};
+    if (!identifier.trim()) errs.identifier = "Email or phone is required";
+    if (!password) errs.password = "Password is required";
+    else if (password.length < 8)
+      errs.password = "Password must be at least 8 characters";
+    return errs;
   };
 
-  const { getLocation } = userLocation();
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log("submitted", e.defaultPrevented);
 
-    // 🔹 Validate
-    const identifierError = validateIdentifier(values.identifier);
-    if (identifierError) {
-      setErrors({ identifier: identifierError });
-      return;
-    }
-
-    if (!values.password) {
-      setErrors({ password: "Password is required" });
+    const errs = validate();
+    if (Object.keys(errs).length) {
+      setErrors(errs);
       return;
     }
 
     setErrors({});
     setLoading(true);
 
-    const loadingToast = toast.loading("Logging in...");
+    // location is optional — never blocks login
+    let locationData = null;
+    try {
+      locationData = await getLocation();
+    } catch {
+      // silently ignore
+    }
+
+    const payload: any = {
+      identifier: identifier.trim(),
+      password,
+    };
+
+    if (locationData) {
+      payload.location = {
+        city:
+          locationData?.details?.city ||
+          locationData.details?.town ||
+          locationData.details?.village ||
+          locationData.details?.quarter ||
+          "",
+        country: locationData.details?.country || "",
+        country_code: locationData.details?.country_code || "",
+        county: locationData.details?.county || "",
+        postcode: locationData.details?.postcode || "",
+        state: locationData.details?.state || "",
+        state_district: locationData.details?.state_district || "",
+        coordinates: {
+          lat: locationData.latitude,
+          lng: locationData.longitude,
+        },
+      };
+    }
 
     try {
-      //  Get location
-      const location = await getLocation();
-
-      // console.log("LOGIN LOCATION:", location);
-
-      const payload = {
-        identifier: values.identifier,
-        password: values.password,
-        location,
-      };
-
-      //  API call
-      const data = await loginApi(payload as LoginPayload);
-
-      console.log("LOGIN RESPONSE:", data);
-
-      //  Save to Redux
-      dispatch(
-        setUser({ user: data?.data?.user, token: data?.data?.accessToken }),
-      );
-
-      //  Success toast
-      toast.success("Login successful ", { id: loadingToast });
-      navigate(from, { replace: true });
+      const res = await loginApi(payload);
+      toast.success(res.data?.message || "Logged in successfully");
+      console.log(res);
+      dispatch(setUser({ user: res.data.user, token: res.data.accessToken }));
+      // navigate("/dashboard")
     } catch (err: any) {
-      const message =
-        err.response?.data?.message || // backend message
-        err.message || // fallback
-        "Something went wrong";
-      setErrors({ general: message });
-
-      //  Error toast
-      toast.error(message, { id: loadingToast });
+      const msg = err?.response?.data?.message || "Login failed";
+      toast.error(msg);
+      if (err?.response?.status === 423) {
+        setErrors({ identifier: msg });
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const fields: Field[] = [
-    {
-      name: "identifier",
-      label: "Email or Phone",
-      type: "text",
-      required: true,
-      placeholder: "your@email.com or 017XXXXXXXX",
-      icon: Icons.User,
-    },
-    {
-      name: "password",
-      label: "Password",
-      type: "password",
-      required: true,
-      placeholder: "••••••••",
-      icon: Icons.Shield,
-    },
-  ];
+  // ── shared styles ──────────────────────────────────
+  const inputBase: React.CSSProperties = {
+    width: "100%",
+    padding: "10px 14px",
+    border: "1px solid #e5e7eb",
+    borderRadius: "4px",
+    fontSize: "14px",
+    color: "#111827",
+    background: "#f9fafb",
+    outline: "none",
+    boxSizing: "border-box",
+    fontFamily: "inherit",
+    transition: "border-color 0.15s, box-shadow 0.15s, background 0.15s",
+  };
+
+  const inputError: React.CSSProperties = {
+    ...inputBase,
+    borderColor: "#ef4444",
+    background: "#fff5f5",
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: "block",
+    fontSize: "14px",
+    fontWeight: "500",
+    color: "#374151",
+    marginBottom: "6px",
+  };
+
+  const errorText: React.CSSProperties = {
+    fontSize: "12px",
+    color: "#ef4444",
+    marginTop: "4px",
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+  };
+
+  const onFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.style.borderColor = "#c0392b";
+    e.target.style.boxShadow = "0 0 0 3px rgba(192,57,43,0.1)";
+    e.target.style.background = "#ffffff";
+  };
+
+  const onBlur =
+    (hasErr: boolean) => (e: React.FocusEvent<HTMLInputElement>) => {
+      e.target.style.borderColor = hasErr ? "#ef4444" : "#e5e7eb";
+      e.target.style.boxShadow = "none";
+      e.target.style.background = hasErr ? "#fff5f5" : "#f9fafb";
+    };
 
   return (
-    <div className="min-h-screen bg-light flex items-stretch">
-      {/* ── Left panel — decorative ── */}
+    <div style={{ minHeight: "100vh", display: "flex" }}>
+      {/* ── LEFT PANEL ── */}
       <div
-        className="hidden lg:flex lg:w-1/2 bg-secondary relative overflow-hidden
-        flex-col items-center justify-center p-12 text-center"
+        className="hidden lg:flex"
+        style={{
+          width: "50%",
+          background:
+            "linear-gradient(135deg, #7f1d1d 0%, #991b1b 45%, #b91c1c 100%)",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          padding: "56px",
+          position: "relative",
+          overflow: "hidden",
+          color: "#fff",
+        }}
       >
-        {/* Decorative circles */}
-        <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full border border-white/5" />
-        <div className="absolute top-16  -left-8  w-44 h-44 rounded-full border border-white/5" />
-        <div className="absolute -bottom-16 -right-16 w-80 h-80 rounded-full border border-white/5" />
-        <div className="absolute bottom-12 right-8 w-40 h-40 rounded-full border border-primary/10" />
+        {/* glow blobs */}
+        <div
+          style={{
+            position: "absolute",
+            top: "-120px",
+            right: "-120px",
+            width: "420px",
+            height: "420px",
+            background: "rgba(239,68,68,0.2)",
+            borderRadius: "50%",
+            filter: "blur(60px)",
+            pointerEvents: "none",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            bottom: "-100px",
+            left: "-100px",
+            width: "350px",
+            height: "350px",
+            background: "rgba(185,28,28,0.2)",
+            borderRadius: "50%",
+            filter: "blur(60px)",
+            pointerEvents: "none",
+          }}
+        />
 
-        {/* Content */}
-        <div className="relative z-10 max-w-sm">
-          {/* Logo */}
-          <div className="flex items-center justify-center gap-3 mb-10">
-            <div className="w-12 h-12 rounded-xs bg-primary center-flex shadow-xl">
-              <Icons.Blood className="!w-6 !h-6 text-white" />
+        {/* top section */}
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              marginBottom: "48px",
+            }}
+          >
+            <div
+              style={{
+                width: "44px",
+                height: "44px",
+                background: "rgba(255,255,255,0.1)",
+                borderRadius: "12px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "20px",
+              }}
+            >
+              🩸
             </div>
-            <span className="font-serif text-2xl font-bold text-white">
-              Blood<span className="text-primary">Connect</span>
+            <span
+              style={{
+                fontSize: "18px",
+                fontWeight: "600",
+                letterSpacing: "0.3px",
+              }}
+            >
+              BloodConnect
             </span>
           </div>
 
-          {/* Headline */}
-          <h2 className="font-serif text-3xl font-bold text-white leading-snug mb-4">
-            Every Login
-            <br />
-            <span className="text-primary">Saves a Life</span>
-          </h2>
-          <p className="text-white/50 text-sm leading-relaxed mb-10">
-            Sign in to access your donor profile, track requests, and connect
-            with those who need your help most.
+          <span
+            style={{
+              fontSize: "11px",
+              letterSpacing: "2px",
+              textTransform: "uppercase",
+              background: "rgba(255,255,255,0.1)",
+              padding: "4px 12px",
+              borderRadius: "20px",
+              color: "rgba(255,255,255,0.85)",
+            }}
+          >
+            Donor Login
+          </span>
+
+          <h1
+            style={{
+              fontSize: "38px",
+              fontWeight: "700",
+              lineHeight: "1.2",
+              margin: "24px 0 20px",
+            }}
+          >
+            Give the gift of life.{" "}
+            <span style={{ color: "#fca5a5" }}>One drop at a time.</span>
+          </h1>
+
+          <p
+            style={{
+              color: "rgba(255,255,255,0.65)",
+              fontSize: "14px",
+              lineHeight: "1.7",
+              maxWidth: "340px",
+            }}
+          >
+            Join thousands of verified donors making a real difference in their
+            communities every day.
           </p>
+        </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { value: "12K+", label: "Lives Saved" },
-              { value: "8.9K", label: "Active Donors" },
-              { value: "64", label: "Districts" },
-            ].map(({ value, label }) => (
-              <div
-                key={label}
-                className="bg-white/5 rounded-xs px-3 py-4 border border-white/10
-                  hover:bg-white/10 transition-colors"
-              >
-                <p className="font-serif font-black text-white text-lg leading-none">
-                  {value}
-                </p>
-                <p className="text-white/40 text-xxs uppercase tracking-widest mt-1">
-                  {label}
-                </p>
+        {/* stats */}
+        <div
+          style={{
+            position: "relative",
+            zIndex: 1,
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "12px",
+          }}
+        >
+          {[
+            { title: "12K+", sub: "Active donors" },
+            { title: "98%", sub: "Match success" },
+            { title: "64", sub: "Districts covered" },
+            { title: "3min", sub: "Avg response" },
+          ].map((s) => (
+            <div
+              key={s.sub}
+              style={{
+                background: "rgba(255,255,255,0.1)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "12px",
+                padding: "16px",
+              }}
+            >
+              <div style={{ fontSize: "22px", fontWeight: "700" }}>
+                {s.title}
               </div>
-            ))}
-          </div>
-
-          {/* Testimonial */}
-          <div className="mt-8 bg-white/5 rounded-xs p-5 border border-white/10 text-left">
-            <div className="flex gap-1 mb-3">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <svg
-                  key={s}
-                  className="w-3 h-3 text-primary"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              ))}
-            </div>
-            <p className="text-white/70 text-xs italic leading-relaxed">
-              "BloodConnect found a donor for my father in under 10 minutes.
-              This platform saved his life."
-            </p>
-            <div className="flex items-center gap-2 mt-3">
               <div
-                className="w-7 h-7 rounded-full bg-primary/20 center-flex
-                font-bold text-primary text-xs shrink-0"
+                style={{
+                  fontSize: "12px",
+                  color: "rgba(255,255,255,0.55)",
+                  marginTop: "4px",
+                }}
               >
-                R
-              </div>
-              <div>
-                <p className="text-white text-xs font-semibold">Rahim Uddin</p>
-                <p className="text-white/40 text-xxs">Dhaka, Bangladesh</p>
+                {s.sub}
               </div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* ── Right panel — form ── */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-5 sm:p-8 lg:p-12">
-        <div className="w-full max-w-md">
-          {/* Mobile logo */}
-          <div className="flex lg:hidden items-center justify-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xs bg-primary center-flex">
-              <Icons.Blood className="!w-5 !h-5 text-white" />
-            </div>
-            <span className="font-serif text-xl font-bold text-dark">
-              Blood<span className="text-primary">Connect</span>
-            </span>
+      {/* ── RIGHT PANEL ── */}
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#fafafa",
+          padding: "24px",
+        }}
+      >
+        <div style={{ width: "100%", maxWidth: "420px" }}>
+          {/* header */}
+          <div style={{ marginBottom: "24px" }}>
+            <h2
+              style={{
+                fontSize: "24px",
+                fontWeight: "600",
+                color: "#111827",
+                margin: "0 0 4px",
+                letterSpacing: "-0.3px",
+              }}
+            >
+              Welcome back
+            </h2>
+            <p style={{ fontSize: "14px", color: "#6b7280", margin: 0 }}>
+              Sign in to continue saving lives
+            </p>
           </div>
-          <>
-            {/* Heading */}
-            <div className="mb-8">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="h-px w-8 bg-primary" />
-                <span className="text-primary text-xxs font-bold tracking-[0.25em] uppercase">
-                  Welcome Back
-                </span>
+
+          {/* card */}
+          <div
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e5e7eb",
+              borderRadius: "16px",
+              padding: "28px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+            }}
+          >
+            <form onSubmit={handleSubmit} noValidate>
+              {/* identifier */}
+              <div style={{ marginBottom: "16px" }}>
+                <label htmlFor="identifier" style={labelStyle}>
+                  Email or phone
+                  <span style={{ color: "#ef4444", marginLeft: "3px" }}>*</span>
+                </label>
+                <input
+                  id="identifier"
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => {
+                    setIdentifier(e.target.value);
+                    setErrors((p) => ({ ...p, identifier: "" }));
+                  }}
+                  onFocus={onFocus}
+                  onBlur={onBlur(!!errors.identifier)}
+                  placeholder="mostak@gmail.com or 01712345678"
+                  autoComplete="username"
+                  style={errors.identifier ? inputError : inputBase}
+                />
+                {errors.identifier && (
+                  <p style={errorText}>
+                    <span>⚠</span> {errors.identifier}
+                  </p>
+                )}
               </div>
-              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-dark">
-                Sign In to Your Account
-              </h1>
-              <p className="text-gray-500 text-sm mt-2">
-                Don't have an account?{" "}
-                <Link
-                  to="/register"
-                  className="text-primary font-semibold hover:underline"
-                >
-                  Register free
-                </Link>
-              </p>
-            </div>
 
-            {/* Social login */}
-            <div className="flex gap-3 mb-6">
-              <button
-                className="flex-1 flex items-center justify-center gap-2
-                  border border-gray-200 rounded-xs py-2.5 text-sm font-medium text-dark
-                  hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-sm"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              {/* password */}
+              <div style={{ marginBottom: "8px" }}>
+                <label htmlFor="password" style={labelStyle}>
+                  Password
+                  <span style={{ color: "#ef4444", marginLeft: "3px" }}>*</span>
+                </label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    id="password"
+                    type={showPass ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setErrors((p) => ({ ...p, password: "" }));
+                    }}
+                    onFocus={onFocus}
+                    onBlur={onBlur(!!errors.password)}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    style={{
+                      ...(errors.password ? inputError : inputBase),
+                      paddingRight: "44px",
+                    }}
                   />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  />
-                </svg>
-                Google
-              </button>
-              <button
-                className="flex-1 flex items-center justify-center gap-2
-                  border border-gray-200 rounded-xs py-2.5 text-sm font-medium text-dark
-                  hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-sm"
-              >
-                <Icons.Facebook className="!w-4 !h-4 text-blue-600" />
-                Facebook
-              </button>
-            </div>
-
-            {/* Divider */}
-            <div className="flex items-center gap-3 mb-6">
-              <div className="flex-1 h-px bg-gray-100" />
-              <span className="text-xs text-gray-400 font-medium">
-                or sign in with credentials
-              </span>
-              <div className="flex-1 h-px bg-gray-100" />
-            </div>
-
-            {/* Form */}
-            <Form
-              fields={fields}
-              values={values}
-              onChange={handleChange}
-              onSubmit={handleSubmit}
-              errors={errors}
-              loading={loading}
-              submitText={
-                <span className="flex items-center gap-2">
-                  {!loading ? <Icons.Login className="!w-4 !h-4" /> : ""}
-                  Sign In
-                </span>
-              }
-              footer={
-                <div className="space-y-4 mt-2">
-                  {/* Forgot password */}
-                  <div className="text-right -mt-3">
-                    <Link
-                      to="/forgot-password"
-                      className="text-xs text-primary hover:underline font-medium"
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
-                  {/* Divider */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-px bg-gray-100" />
-                    <span className="text-xs text-gray-400">new here?</span>
-                    <div className="flex-1 h-px bg-gray-100" />
-                  </div>
-
-                  {/* Register link */}
-                  <Link
-                    to="/register"
-                    className="w-full btn-outline text-sm center-flex gap-2 py-2.5"
+                  <button
+                    type="button"
+                    onClick={() => setShowPass(!showPass)}
+                    aria-label={showPass ? "Hide password" : "Show password"}
+                    style={{
+                      position: "absolute",
+                      right: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "#9ca3af",
+                      fontSize: "16px",
+                      padding: "2px",
+                      lineHeight: "1",
+                    }}
                   >
-                    <Icons.User className="!w-4 !h-4" />
-                    Create an Account
-                  </Link>
-
-                  {/* Trust badges */}
-                  <div className="flex items-center justify-center gap-4 pt-2">
-                    {[
-                      { icon: Icons.Shield, text: "Secure Login" },
-                      { icon: Icons.Check, text: "Verified Donors" },
-                    ].map(({ icon: Icon, text }) => (
-                      <div
-                        key={text}
-                        className="flex items-center gap-1.5 text-gray-400"
-                      >
-                        <Icon className="!w-3 !h-3" />
-                        <span className="text-xxs">{text}</span>
-                      </div>
-                    ))}
-                  </div>
+                    {showPass ? "🙈" : "👁"}
+                  </button>
                 </div>
+                {errors.password && (
+                  <p style={errorText}>
+                    <span>⚠</span> {errors.password}
+                  </p>
+                )}
+              </div>
+
+              {/* forgot */}
+              <div style={{ textAlign: "right", marginBottom: "24px" }}>
+                <Link
+                  to="/forgot-password"
+                  style={{
+                    fontSize: "12px",
+                    color: "#6b7280",
+                    textDecoration: "none",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.color = "#c0392b")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.color = "#6b7280")
+                  }
+                >
+                  Forgot password?
+                </Link>
+              </div>
+
+              {/* submit */}
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  width: "100%",
+                  padding: "11px",
+                  background: loading ? "#e5a8a2" : "#c0392b",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "6px",
+                  fontSize: "15px",
+                  fontWeight: "600",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  letterSpacing: "0.3px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  transition: "background 0.2s",
+                  fontFamily: "inherit",
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) e.currentTarget.style.background = "#a93226";
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) e.currentTarget.style.background = "#c0392b";
+                }}
+              >
+                {loading ? (
+                  <>
+                    <svg
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        animation: "spin 0.7s linear infinite",
+                      }}
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        opacity="0.25"
+                      />
+                      <path
+                        fill="currentColor"
+                        opacity="0.75"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      />
+                    </svg>
+                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign in →"
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* footer */}
+          <p
+            style={{
+              textAlign: "center",
+              fontSize: "14px",
+              color: "#6b7280",
+              marginTop: "20px",
+            }}
+          >
+            Don't have an account?{" "}
+            <Link
+              to="/register"
+              style={{
+                color: "#c0392b",
+                fontWeight: "500",
+                textDecoration: "none",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.textDecoration = "underline")
               }
-            />
-          </>
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.textDecoration = "none")
+              }
+            >
+              Create account
+            </Link>
+          </p>
         </div>
       </div>
     </div>
   );
-};
-
-export default LoginPage;
+}
