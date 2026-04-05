@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useLocation } from "../../../hooks/useLocation";
 import { loginApi } from "../service/loginService";
+import { useDispatch } from "react-redux";
+import { setUser } from "../../../redux/slices/userSlice";
 
 // ── Component ──────────────────────────────────────────────
 export default function LoginPage() {
@@ -11,6 +13,7 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const dispatch = useDispatch();
   const {getLocation} = useLocation()
 
   const validate = (): Record<string, string> => {
@@ -49,9 +52,9 @@ export default function LoginPage() {
         coordinates: {
           lat: locationData?.latitude,
           lng: locationData?.longitude}}});
-          console.log(res)
-      // toast.success(res?.message);
-      // dispatch(setUser({ user: res.data?.user, token: res.data?.accessToken }));
+          // console.log(res)
+      toast.success(res?.data?.message);
+      dispatch(setUser({ user: res.data?.user, token: res.data?.accessToken }));
     } catch (err: unknown) {
       console.log(err);
       
@@ -322,25 +325,6 @@ export default function LoginPage() {
               boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
             }}
           >
-            {/* demo hint */}
-            <div
-              style={{
-                background: "#fef3c7",
-                border: "1px solid #fde68a",
-                borderRadius: "8px",
-                padding: "10px 14px",
-                marginBottom: "20px",
-                fontSize: "12px",
-                color: "#92400e",
-                lineHeight: "1.8",
-              }}
-            >
-              <strong>🔑 Demo credentials</strong>
-              <br />
-              Email: masudhasanantorsarker@gmail.com
-              <br />
-              Password: masud123
-            </div>
 
             {/* identifier */}
             <div style={{ marginBottom: "16px" }}>
