@@ -17,6 +17,7 @@ export interface RegisterLocation {
 }
 
 export interface RegisterFormData {
+  role: "user" | "donor";
   name: string;
   email: string;
   phone: string;
@@ -36,6 +37,7 @@ export interface RegisterFormData {
 }
 
 export interface RegisterPayload {
+  role: "user" | "donor";
   name: string;
   email: string;
   phone: string;

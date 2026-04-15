@@ -5,7 +5,7 @@ import { setToken, clearUser } from "../redux/slices/userSlice";
 
 const Api = axios.create({
   baseURL: Path.api,
-  withCredentials: true, // ✅ sends httpOnly refresh token cookie
+  withCredentials: true, 
   headers: {
     "Content-Type": "application/json",
   },
@@ -50,14 +50,13 @@ Api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const res = await Api.post("/auth/refresh-token");
-        const newToken = res.data.token;
-
-        store.dispatch(setToken(newToken));
-
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        return Api(originalRequest);
-
+         const res = await Api.post("/auth/refresh-token"); 
+        const newToken = res.data.data.accessToken; // <--- NEW LINE
+ 
+        store.dispatch(setToken(newToken)); 
+ 
+        originalRequest.headers.Authorization = `Bearer ${newToken}`; 
+        return Api(originalRequest); 
       } catch {
         store.dispatch(clearUser());
         window.location.href = "/login";

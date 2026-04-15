@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useRegister } from "../service/useRegister";
+import { useRegister } from "../service/UseRegister";
 import { useLocation } from "../../../hooks/useLocation";
 import type { RegisterFormData } from "../service/register.type";
-import { useDispatch } from "react-redux";
 import toast from "react-hot-toast";
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
@@ -29,12 +28,12 @@ const getPasswordStrength = (val: string) => {
 export default function RegisterPage() {
   const navigate = useNavigate();
 const { register, loading } = useRegister();
-const dispatch = useDispatch();
   const [step, setStep] = useState(1);
-  const { getLocation, loading: detectingLocation, helper: locationHelper } = useLocation();
+  const { getLocation, loading: detectingLocation } = useLocation();
 
 
   const [form, setForm] = useState<RegisterFormData>({
+    role: "user",
     name: "",
     email: "",
     phone: "",
@@ -134,7 +133,7 @@ const handleDetectLocation = async () => {
       displayName,
       road:           details.road           || "",
       quarter:        details.quarter        || "",
-      city:           details.city || details.town || details.village || "",
+      city:           details.city || details.town || details.quarter || "",
       county:         details.county         || "",
       state_district: details.state_district || "",
       state:          details.state          || "",
@@ -179,8 +178,15 @@ const handleDetectLocation = async () => {
     toast.success("Account created! Please log in.", { id: loadingToast });
     navigate("/login");
   } catch (err: any) {
-    console.log(err)
-    const message = err.response?.data?.data?.message || err.message || "Registration failed";
+    const backendErrors = err?.response?.data?.errors;
+    const message =
+      (Array.isArray(backendErrors) && backendErrors.length > 0
+        ? backendErrors[0]
+        : undefined) ||
+      err?.response?.data?.message ||
+      err?.response?.data?.data?.message ||
+      err?.message ||
+      "Registration failed";
     toast.error(message, { id: loadingToast });
     setErrors({ submit: message });
   }
@@ -239,11 +245,50 @@ const handleDetectLocation = async () => {
       {/* ── RIGHT PANEL ── */}
       <div style={styles.right}>
         <div style={styles.rightInner}>
+          {/* Role Toggle */}
+          <div style={styles.roleToggleWrapper}>
+            <div style={styles.roleToggleTrack}>
+              <div
+                style={{
+                  ...styles.roleToggleSlider,
+                  transform: form.role === "donor" ? "translateX(100%)" : "translateX(0)",
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => set("role", "user")}
+                style={{
+                  ...styles.roleToggleBtn,
+                  color: form.role === "user" ? "#fff" : "#888",
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                Recipient
+              </button>
+              <button
+                type="button"
+                onClick={() => set("role", "donor")}
+                style={{
+                  ...styles.roleToggleBtn,
+                  color: form.role === "donor" ? "#fff" : "#888",
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                </svg>
+                Donor
+              </button>
+            </div>
+          </div>
+
           {/* Header */}
           <div style={{ marginBottom: "1.5rem" }}>
             <h2 style={styles.formTitle}>Create your account</h2>
             <p style={styles.formSub}>
-              Already a donor?{" "}
+              {form.role === "donor" ? "Already a donor?" : "Already have an account?"}{" "}
               <Link to="/login" style={styles.link}>
                 Sign in here
               </Link>
@@ -470,7 +515,7 @@ const handleDetectLocation = async () => {
                   <circle cx="12" cy="12" r="3" />
                   <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
                 </svg>
-                {locationHelper}
+                {detectingLocation ? "Detecting location..." : "Detect location"}
               </button>
 
               {errors.location && (
@@ -976,5 +1021,47 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 500,
     cursor: "pointer",
     transition: "all 0.15s",
+  },
+  roleToggleWrapper: {
+    marginBottom: "1.5rem",
+  },
+  roleToggleTrack: {
+    position: "relative" as const,
+    display: "inline-flex",
+    background: "#F0EDE8",
+    borderRadius: "12px",
+    padding: "4px",
+    width: "100%",
+    maxWidth: "280px",
+    boxShadow: "inset 0 1px 3px rgba(0,0,0,0.06)",
+  },
+  roleToggleSlider: {
+    position: "absolute" as const,
+    top: "4px",
+    left: "4px",
+    width: "calc(50% - 4px)",
+    height: "calc(100% - 8px)",
+    background: "#C0392B",
+    borderRadius: "9px",
+    transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+    boxShadow: "0 2px 8px rgba(192, 57, 43, 0.3)",
+  },
+  roleToggleBtn: {
+    position: "relative" as const,
+    zIndex: 1,
+    flex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "6px",
+    height: "38px",
+    border: "none",
+    background: "transparent",
+    fontFamily: "'DM Sans', sans-serif",
+    fontSize: "13px",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "color 0.3s",
+    letterSpacing: "0.3px",
   },
 };

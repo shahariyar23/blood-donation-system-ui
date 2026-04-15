@@ -13,6 +13,9 @@ import ProtectedRoute from "./ProtectedRoute";
 import RegisterPage from "../../../features/register/ui/RegisterPage";
 import ForgotPasswordPage from "../../../features/forgotPassword/ui/ForgotPassword";
 import ResetPasswordPage from "../../../features/restPassword/ui/ResetPasswordPage";
+import ProfilePage from "../../../features/profile/component/ProfilePage";
+import MyDonationsPage from "../../../features/myDonation/ui/MyDonation";
+import SettingsPage from "../../../features/mySetting/ui/MySettingPage";
 
 export const router = createBrowserRouter([
   {
@@ -51,6 +54,30 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <BloodBankPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/profile",
+        element: (
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/my-donations",
+        element: (
+          <ProtectedRoute>
+            <MyDonationsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/settings",
+        element: (
+          <ProtectedRoute>
+            <SettingsPage />
           </ProtectedRoute>
         ),
       },

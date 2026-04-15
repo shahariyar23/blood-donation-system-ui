@@ -29,7 +29,7 @@ console.log(res.data.data , "app.tsx")
     dispatch(setToken(res.data.data.accessToken));
 
     const user = await getAuthUserApi();
-    console.log(user, "app.tsx")
+    // console.log(user, "app.tsx")
     dispatch(setAuthUser(user));
 
   } catch {

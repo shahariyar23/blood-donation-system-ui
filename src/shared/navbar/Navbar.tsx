@@ -29,7 +29,7 @@ const Navbar = ({ scrolled }: NavbarProps) => {
 
   // Fixed: was state.user, should be state.reduxSlice
   const { user, isAuthenticated } = useSelector((s: RootState) => s.user);
-console.log(user, "in nabbar")
+// console.log(user, "in nabbar")
   const [menuOpen, setMenuOpen] = useState(false);
   const [rendered, setRendered] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -45,7 +45,7 @@ console.log(user, "in nabbar")
       navigate("/login");
     }
   };
-  console.log(user)
+  // console.log(user)
 
   // ── Close dropdown on outside click ─────────────────
   useEffect(() => {
