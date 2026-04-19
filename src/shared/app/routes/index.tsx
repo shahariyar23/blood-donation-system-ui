@@ -1,15 +1,19 @@
 import { createBrowserRouter } from "react-router-dom";
 import MainLayout from "../../layout/MainLayout";
+import HospitalLayout from "../../layout/HospitalLayout";
 import Home from "../../../features/home/container/Home";
 import NotFound from "../../../features/not-found/NotFound";
 import FindDonorPage from "../../../features/findDoner/container/Finddonorpage";
 import LoginPage from "../../../features/login/ui/LoginPage";
+import HospitalLoginPage from "../../../features/hospital/ui/HospitalLoginPage";
+import HospitalDashboard from "../../../features/hospital/ui/HospitalDashboard";
 import DonateBlood from "../../../features/donateBlood/ui/DonateBlood";
 import RequestBloodPage from "../../../features/requestBlood/ui/RequestBloodPage";
 import BloodBankPage from "../../../features/bloodBank/ui/BloodBankPage";
 import AboutPage from "../../../features/about/ui/About";
 import GuestRoute from "./GuestRoute";
 import ProtectedRoute from "./ProtectedRoute";
+import HospitalRoute from "./HospitalRoute";
 import RegisterPage from "../../../features/register/ui/RegisterPage";
 import ForgotPasswordPage from "../../../features/forgotPassword/ui/ForgotPassword";
 import ResetPasswordPage from "../../../features/restPassword/ui/ResetPasswordPage";
@@ -19,6 +23,28 @@ import SettingsPage from "../../../features/mySetting/ui/MySettingPage";
 import VerifyOtpPage from "../../../features/register/ui/VerifyOtpPage";
 
 export const router = createBrowserRouter([
+  {
+    path: "/hospital/login",
+    element: (
+      <GuestRoute>
+        <HospitalLoginPage />
+      </GuestRoute>
+    ),
+  },
+  {
+    path: "/hospital",
+    element: <HospitalLayout />,
+    children: [
+      {
+        index: true,
+        element: (
+          <HospitalRoute>
+            <HospitalDashboard />
+          </HospitalRoute>
+        ),
+      },
+    ],
+  },
   {
     element: <MainLayout />,
     children: [
