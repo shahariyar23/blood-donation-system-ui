@@ -11,6 +11,18 @@ const Api = axios.create({
   },
 });
 
+const refreshBaseURL = Path.server || Path.api.replace(/\/api(\/.*)?$/, "");
+
+const RefreshApi = axios.create({
+  baseURL: refreshBaseURL,
+  withCredentials: true,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+let refreshPromise: Promise<string> | null = null;
+
 // ── Request Interceptor ────────────────────────────────────
 // Auto-attach access token from Redux to every request
 Api.interceptors.request.use(
@@ -50,14 +62,29 @@ Api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-         const res = await Api.post("/auth/refresh-token"); 
-        const newToken = res.data.data.accessToken; // <--- NEW LINE
- 
-        store.dispatch(setToken(newToken)); 
- 
-        originalRequest.headers.Authorization = `Bearer ${newToken}`; 
-        return Api(originalRequest); 
+        if (!refreshPromise) {
+          refreshPromise = RefreshApi.post("/api/auth/refresh-token").then((res) => {
+            const newToken = res?.data?.data?.accessToken;
+            if (!newToken) {
+              throw new Error("Missing access token from refresh response");
+            }
+            return newToken;
+          });
+        }
+
+        const newToken = await refreshPromise;
+        refreshPromise = null;
+
+        store.dispatch(setToken(newToken));
+
+        originalRequest.headers = {
+          ...(originalRequest.headers ?? {}),
+          Authorization: `Bearer ${newToken}`,
+        };
+
+        return Api(originalRequest);
       } catch {
+        refreshPromise = null;
         store.dispatch(clearUser());
         window.location.href = "/login";
       }

@@ -12,6 +12,7 @@ interface DonorGridProps {
   onLoadMore: () => void;
   onExpandSearch: () => void;
   loading?: boolean;
+  isFetching?: boolean;
 }
 
 const DonorGrid = ({
@@ -22,7 +23,16 @@ const DonorGrid = ({
   onLoadMore,
   onExpandSearch,
   loading = false,
+  isFetching = false,
 }: DonorGridProps) => {
+
+  if (isFetching && donors.length === 0) {
+    return (
+      <div className="bg-white rounded-xs shadow-md p-10 sm:p-14 center-flex">
+        <BuildInLoader />
+      </div>
+    );
+  }
 
   // ── Empty state ──
   if (totalFiltered === 0) {

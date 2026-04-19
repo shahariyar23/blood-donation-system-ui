@@ -23,6 +23,8 @@ export type ProfileApiUser = IReduxUser & {
   isDonorVerified?: boolean;
   totalDonations?: number;
   lastDonationDate?: string | null;
+  totalReceived?: number;
+  lastReceivedDate?: string | null;
   avatar?: string;
   socialLinks?: {
     facebook: string | null;
@@ -208,6 +210,15 @@ const extractUser = (payload: UserApiEnvelope): ProfileApiUser => {
     normalizeDateStr(nestedProfile?.lastDonationDate) ??
     normalizeDateStr(baseUser.lastDonationDate);
 
+  const totalReceived =
+    asNullableNumber(nestedProfile?.totalReceived) ??
+    asNullableNumber(baseUser.totalReceived) ??
+    0;
+
+  const lastReceivedDate =
+    normalizeDateStr(nestedProfile?.lastReceivedDate) ??
+    normalizeDateStr(baseUser.lastReceivedDate);
+
   const isDonorVerified =
     typeof nestedProfile?.isDonorVerified === "boolean"
       ? nestedProfile.isDonorVerified
@@ -232,6 +243,8 @@ const extractUser = (payload: UserApiEnvelope): ProfileApiUser => {
     isAvailable,
     totalDonations,
     lastDonationDate,
+    totalReceived,
+    lastReceivedDate,
     isDonorVerified,
     avatar,
   };

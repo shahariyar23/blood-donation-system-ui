@@ -53,7 +53,7 @@ export default function LoginPage() {
           lat: locationData?.latitude,
           lng: locationData?.longitude}}});
           // console.log(res)
-      toast.success(res?.data?.message);
+      toast.success(res?.message);
       dispatch(setUser({ user: res.data?.user, token: res.data?.accessToken }));
     } catch (err: unknown) {
       console.log(err);

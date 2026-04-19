@@ -12,6 +12,7 @@ export interface AuthResponse {
   data:{user: IReduxUser;
   accessToken: string;
   message: string;}
+  message: string;
 }
 
 // ── API Calls ──────────────────────────────────────────────

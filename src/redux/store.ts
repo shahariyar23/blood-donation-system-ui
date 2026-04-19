@@ -13,6 +13,7 @@ import {
 } from "redux-persist";
 
 import userReducer from "./slices/userSlice";
+import donorReducer from "./slices/donorSlice";
 
 //  Persist config
 const persistConfig = {
@@ -29,6 +30,7 @@ const persistedReducer = persistReducer(persistConfig, userReducer);
 export const store = configureStore({
   reducer: {
     user: persistedReducer, 
+    donors: donorReducer,
   },
 
   middleware: (getDefaultMiddleware) =>

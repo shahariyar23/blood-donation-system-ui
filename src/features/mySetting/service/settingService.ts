@@ -46,6 +46,10 @@ interface LogoutOthersResponse {
   activeSessions: number;
 }
 
+interface AccountActionResponse {
+  message?: string;
+}
+
 // ── API Calls ──────────────────────────────────────────────
 
 // GET /api/auth/sessions
@@ -64,4 +68,20 @@ export const logoutSessionApi = async (sessionId: string): Promise<LogoutSession
 export const logoutOtherSessionsApi = async (): Promise<LogoutOthersResponse> => {
   const res = await api.post("/auth/sessions/logout-others");
   return res.data.data;
+};
+
+// POST /api/v1/auth/deactivate-account
+export const deactivateAccountApi = async (): Promise<AccountActionResponse> => {
+  const res = await api.post("/api/v1/auth/deactivate-account");
+  return res.data;
+};
+
+// DELETE /api/v1/auth/delete-account
+export const deleteAccountApi = async (
+  reason?: string,
+): Promise<AccountActionResponse> => {
+  const res = await api.delete("/api/v1/auth/delete-account", {
+    data: reason ? { reason } : undefined,
+  });
+  return res.data;
 };

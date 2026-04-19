@@ -16,7 +16,7 @@ import {
   getProfileApi,
   updateProfileApi,
   type ProfileApiUser,
-} from "../service/ProfileService";
+} from "../service/profileService";
 
 // ── shorthand alias for styles (used throughout JSX) ──
 const s = profileStyles;
@@ -33,9 +33,13 @@ interface ProfileForm {
   dateOfBirth: string;
   totalDonations: number;
   lastDonationDate: string;
+  totalReceived: number;
+  lastReceivedDate: string;
   isAvailable: boolean;
   isVerified: boolean;
   isDonorVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
   role: string;
   location: {
     city: string;
@@ -80,9 +84,13 @@ const EMPTY_PROFILE_FORM: ProfileForm = {
   dateOfBirth: "",
   totalDonations: 0,
   lastDonationDate: "",
+  totalReceived: 0,
+  lastReceivedDate: "",
   isAvailable: false,
   isVerified: false,
   isDonorVerified: false,
+  createdAt: "",
+  updatedAt: "",
   role: "",
   location: {
     city: "",
@@ -135,9 +143,13 @@ const createProfileForm = (user?: ProfileApiUser | null): ProfileForm => {
     dateOfBirth: normalizeDateValue(user.dateOfBirth),
     totalDonations: user.totalDonations ?? 0,
     lastDonationDate: user.lastDonationDate ?? "",
+    totalReceived: user.totalReceived ?? 0,
+    lastReceivedDate: user.lastReceivedDate ?? "",
     isAvailable: user.isAvailable ?? false,
     isVerified: user.isVerified ?? false,
     isDonorVerified: user.isDonorVerified ?? false,
+    createdAt: normalizeDateValue(user.createdAt),
+    updatedAt: normalizeDateValue(user.updatedAt),
     role: user.role ?? "",
     location: {
       city: user.location?.city ?? "",
@@ -174,6 +186,36 @@ export default function ProfilePage() {
     newPassword: "",
     confirmPassword: "",
   });
+  
+  const isDonor = form.role === "donor";
+  const formatDate = (value: string) =>
+    value
+      ? new Date(value).toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+      : "Never";
+  const hasReceived = form.totalReceived > 0 || Boolean(form.lastReceivedDate);
+  const stats = isDonor
+    ? [
+        { label: "Total donations", value: form.totalDonations },
+        { label: "Last donation", value: formatDate(form.lastDonationDate) },
+        { label: "Member since", value: formatDate(form.createdAt) },
+        { label: "Last update profile", value: formatDate(form.updatedAt) },
+        ...(hasReceived
+          ? [
+              { label: "Total received", value: form.totalReceived },
+              { label: "Last received", value: formatDate(form.lastReceivedDate) },
+            ]
+          : []),
+      ]
+    : [
+        { label: "Total received", value: form.totalReceived },
+        { label: "Last received", value: formatDate(form.lastReceivedDate) },
+        { label: "Member since", value: formatDate(form.createdAt) },
+        { label: "Last update profile", value: formatDate(form.updatedAt) },
+      ];
 
   useEffect(() => {
     if (reduxUser) {
@@ -230,9 +272,6 @@ export default function ProfilePage() {
     dispatch(setAuthUser(profile));
     setForm(createProfileForm(profile as ProfileApiUser));
   };
-console.log(reduxUser
-  
-)
   // ── save handlers ──────────────────────────────────
   const save = async (
     section: string,
@@ -370,49 +409,43 @@ console.log(reduxUser
         <div style={s.pageHeader}>
           <h1 style={s.pageTitle}>My profile</h1>
           <p style={s.pageSubtitle}>
-            Manage your donor profile and account settings
+            {isDonor
+              ? "Manage your donor profile and account settings"
+              : "Manage your profile and account settings"}
           </p>
         </div>
 
         {/* ── 1. avatar + overview ── */}
-        <ProfileCard title="Donor overview">
+        <ProfileCard title={isDonor ? "Donor overview" : "Profile overview"}>
           <ProfileAvatar
             name={form.name}
             avatar={form.avatar}
             bloodType={form.bloodType}
+            role={form.role}
             totalDonations={form.totalDonations}
+            totalReceived={form.totalReceived}
             isAvailable={form.isAvailable}
             isDonorVerified={form.isDonorVerified}
             onUpload={() => toast("Avatar upload coming soon")}
           />
 
-          <AvailabilityToggle
-            isAvailable={form.isAvailable}
-            onChange={toggleAvailability}
-            loading={isSaving("availability")}
-          />
+          {isDonor && (
+            <AvailabilityToggle
+              isAvailable={form.isAvailable}
+              onChange={toggleAvailability}
+              loading={isSaving("availability")}
+            />
+          )}
 
           {/* stats row */}
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
               gap: "12px",
             }}
           >
-            {[
-              { label: "Total donations", value: form.totalDonations },
-              {
-                label: "Last donation",
-                value: form.lastDonationDate
-                  ? new Date(form.lastDonationDate).toLocaleDateString(
-                      "en-GB",
-                      { day: "2-digit", month: "short", year: "numeric" },
-                    )
-                  : "Never",
-              },
-              { label: "Member since", value: "Jan 2024" },
-            ].map((stat) => (
+            {stats.map((stat) => (
               <div
                 key={stat.label}
                 style={{
@@ -767,43 +800,6 @@ console.log(reduxUser
               />
             </>
           )}
-        </ProfileCard>
-
-        {/* ── 7. danger zone ── */}
-        <ProfileCard title="Danger zone">
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "14px 16px",
-              background: "#FFF5F5",
-              border: "1px solid #FADBD8",
-              borderRadius: "10px",
-            }}
-          >
-            <div>
-              <div
-                style={{ fontSize: "14px", fontWeight: 500, color: "#922B21" }}
-              >
-                Deactivate account
-              </div>
-              <div
-                style={{ fontSize: "12px", color: "#C0392B", marginTop: "2px" }}
-              >
-                Your profile will be hidden. You can reactivate anytime.
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() =>
-                toast.error("Are you sure? This will hide your profile.")
-              }
-              style={s.btnDanger}
-            >
-              Deactivate
-            </button>
-          </div>
         </ProfileCard>
       </div>
     </div>
