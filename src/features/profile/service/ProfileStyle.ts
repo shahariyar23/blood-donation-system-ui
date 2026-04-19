@@ -60,6 +60,7 @@ export const profileStyles: Record<string, React.CSSProperties> = {
     display:    "flex",
     alignItems: "center",
     gap:        "24px",
+    flexWrap:   "wrap" as const,
     marginBottom: "24px",
     paddingBottom: "24px",
     borderBottom: "1px solid #F0EDE8",
@@ -143,12 +144,12 @@ export const profileStyles: Record<string, React.CSSProperties> = {
   // ── form fields ──────────────────────────────────────
   grid2: {
     display:             "grid",
-    gridTemplateColumns: "1fr 1fr",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
     gap:                 "16px",
   },
   grid3: {
     display:             "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
+    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
     gap:                 "16px",
   },
   fieldWrap: {

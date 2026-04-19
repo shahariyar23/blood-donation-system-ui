@@ -5,7 +5,9 @@ interface ProfileAvatarProps {
   name:            string;
   avatar?:         string;
   bloodType:       string;
+  role:            string;
   totalDonations:  number;
+  totalReceived:   number;
   isAvailable:     boolean;
   isDonorVerified: boolean;
   onUpload:        () => void;
@@ -15,11 +17,19 @@ export default function ProfileAvatar({
   name,
   avatar,
   bloodType,
+  role,
   totalDonations,
+  totalReceived,
   isAvailable,
   isDonorVerified,
   onUpload,
 }: ProfileAvatarProps) {
+  const isDonor = role === "donor";
+  const donationLabel = `${totalDonations} donation${totalDonations !== 1 ? "s" : ""}`;
+  const receivedLabel = `${totalReceived} received`;
+  const metaText = isDonor
+    ? `${donationLabel}${totalReceived > 0 ? ` · ${receivedLabel}` : ""}`
+    : receivedLabel;
   const initials = name
     .split(" ")
     .map((n) => n[0])
@@ -50,18 +60,20 @@ export default function ProfileAvatar({
       <div style={s.avatarInfo}>
         <h2 style={s.avatarName}>{name}</h2>
         <p style={s.avatarMeta}>
-          {bloodType && `${bloodType} donor · `}
-          {totalDonations} donation{totalDonations !== 1 ? "s" : ""}
+          {bloodType && `${bloodType}${isDonor ? " donor" : ""} · `}
+          {metaText}
         </p>
         <div style={s.badgeRow}>
-          {isDonorVerified && (
+          {isDonor && isDonorVerified && (
             <ProfileBadge label="Verified donor" color="green" icon="✓" />
           )}
-          <ProfileBadge
-            label={isAvailable ? "Available" : "Unavailable"}
-            color={isAvailable ? "green" : "gray"}
-            icon={isAvailable ? "●" : "○"}
-          />
+          {isDonor && (
+            <ProfileBadge
+              label={isAvailable ? "Available" : "Unavailable"}
+              color={isAvailable ? "green" : "gray"}
+              icon={isAvailable ? "●" : "○"}
+            />
+          )}
           {bloodType && (
             <ProfileBadge label={bloodType} color="red" icon="🩸" />
           )}

@@ -1,11 +1,17 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useRegister } from "../service/UseRegister";
 import { useLocation } from "../../../hooks/useLocation";
 import type { RegisterFormData } from "../service/register.type";
 import toast from "react-hot-toast";
+import { styles } from "../container/style";
+import { StepAccount } from "../container/StepAccount";
+import { StepHealth } from "../container/StrpHealth";
+import { StepLocation } from "../container/StepLocation";
+import { StepSocials } from "../container/StepSocial";
+import { sendOtpApi } from "../service/otpService";
 
-const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
+
 
 const STEPS = [
   { id: 1, label: "Account" },
@@ -13,6 +19,13 @@ const STEPS = [
   { id: 3, label: "Location" },
   { id: 4, label: "Socials" },
 ];
+
+const STEP_FIELD_ORDER: Record<number, string[]> = {
+  1: ["name", "phone", "email", "avatar", "password", "confirmPassword"],
+  2: ["age", "weight", "dateOfBirth"],
+  3: ["city", "state", "state_district", "county", "country", "postcode", "lat", "lng"],
+  4: ["facebook", "instagram", "twitter"],
+};
 
 const getPasswordStrength = (val: string) => {
   let score = 0;
@@ -27,13 +40,17 @@ const getPasswordStrength = (val: string) => {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-const { register, loading } = useRegister();
+  const { register, loading } = useRegister();
   const [step, setStep] = useState(1);
   const { getLocation, loading: detectingLocation } = useLocation();
+  const fieldRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [isCompact, setIsCompact] = useState(false);
 
 
   const [form, setForm] = useState<RegisterFormData>({
-    role: "user",
+    role: "donor",
+    isAvailable: true,
+    avatar: null,
     name: "",
     email: "",
     phone: "",
@@ -67,9 +84,27 @@ const { register, loading } = useRegister();
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsCompact(window.innerWidth < 1024);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const set = (field: string, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
+  const setRole = (role: "user" | "donor") => {
+    setForm((prev) => ({
+      ...prev,
+      role,
+      isAvailable: role === "donor" ? prev.isAvailable : false,
+    }));
   };
 
   const setLocation = (field: string, value: any) => {
@@ -122,125 +157,193 @@ const { register, loading } = useRegister();
 
   const back = () => setStep((s) => Math.max(1, s - 1));
 
-const handleDetectLocation = async () => {
-  const result = await getLocation();
-  if (!result) return;
-  const { latitude, longitude, displayName, details } = result;
-  setForm((prev) => ({
-    ...prev,
-    location: {
-      ...prev.location,
-      displayName,
-      road:           details.road           || "",
-      quarter:        details.quarter        || "",
-      city:           details.city || details.town || details.quarter || "",
-      county:         details.county         || "",
-      state_district: details.state_district || "",
-      state:          details.state          || "",
-      postcode:       details.postcode       || "",
-      country:        details.country        || "",
-      country_code:   (details.country_code  || "").toUpperCase(),
-      coordinates: { lat: latitude, lng: longitude },
-    },
-  }));
-};
+  const setFieldRef = (key: string) => (el: HTMLInputElement | null) => {
+    fieldRefs.current[key] = el;
+  };
+
+  const focusField = (key: string) => {
+    const target = fieldRefs.current[key];
+    if (target) {
+      target.focus();
+      target.select?.();
+    }
+  };
+
+  const focusNextField = (currentKey: string): boolean => {
+    const order = STEP_FIELD_ORDER[step] || [];
+    const currentIndex = order.indexOf(currentKey);
+    if (currentIndex === -1) return false;
+    const nextKey = order[currentIndex + 1];
+    if (!nextKey) return false;
+    focusField(nextKey);
+    return true;
+  };
+
+  const handleInputKeyDown = (
+    event: React.KeyboardEvent<HTMLInputElement>,
+    currentKey: string,
+  ) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    const moved = focusNextField(currentKey);
+    if (!moved) {
+      if (step === 4) {
+        void handleSubmit();
+      } else {
+        next();
+      }
+    }
+  };
+
+  const handleDetectLocation = async () => {
+    const result = await getLocation();
+    if (!result) return;
+    const { latitude, longitude, displayName, details } = result;
+    setForm((prev) => ({
+      ...prev,
+      location: {
+        ...prev.location,
+        displayName,
+        road: details.road || "",
+        quarter: details.quarter || "",
+        city: details.city || details.town || details.quarter || "",
+        county: details.county || "",
+        state_district: details.state_district || "",
+        state: details.state || "",
+        postcode: details.postcode || "",
+        country: details.country || "",
+        country_code: (details.country_code || "").toUpperCase(),
+        coordinates: { lat: latitude, lng: longitude },
+      },
+    }));
+  };
 
   const handleSubmit = async () => {
-  if (!validateStep(4)) return;
+    if (!validateStep(4)) return;
 
-  const loadingToast = toast.loading("Creating account...");
+    const loadingToast = toast.loading("Creating account...");
 
-  try {
-    const locationResult = await getLocation();
-    if (locationResult) {
-      setForm((prev) => ({
-        ...prev,
-        location: {
-          ...prev.location,
-          displayName: locationResult.displayName,
-          road: locationResult.details.road || "",
-          quarter: locationResult.details.quarter || "",
-          city: locationResult.details.city || locationResult.details.town || locationResult.details.village || "",
-          county: locationResult.details.county || "",
-          state_district: locationResult.details.state_district || "",
-          state: locationResult.details.state || "",
-          postcode: locationResult.details.postcode || "",
-          country: locationResult.details.country || "",
-          country_code: (locationResult.details.country_code || "").toUpperCase(),
-          coordinates: { lat: locationResult.latitude, lng: locationResult.longitude },
-        },
-      }));
+    try {
+      const locationResult = await getLocation();
+      const finalForm = locationResult
+        ? {
+            ...form,
+            location: {
+              ...form.location,
+              displayName: locationResult.displayName,
+              road: locationResult.details.road || "",
+              quarter: locationResult.details.quarter || "",
+              city: locationResult.details.city || locationResult.details.town || locationResult.details.village || "",
+              county: locationResult.details.county || "",
+              state_district: locationResult.details.state_district || "",
+              state: locationResult.details.state || "",
+              postcode: locationResult.details.postcode || "",
+              country: locationResult.details.country || "",
+              country_code: (locationResult.details.country_code || "").toUpperCase(),
+              coordinates: { lat: locationResult.latitude, lng: locationResult.longitude },
+            },
+          }
+        : form;
+
+      if (locationResult) {
+        setForm(finalForm);
+      }
+
+      const data = await register(finalForm);
+      console.log(data);
+
+      try {
+        await sendOtpApi(finalForm.email.trim());
+      } catch {
+        toast.error("OTP send failed. You can resend from the verification page.");
+      }
+
+      toast.success("Account created! Verify your email.", { id: loadingToast });
+      navigate(`/verify-otp?email=${encodeURIComponent(finalForm.email.trim())}`);
+    } catch (err: any) {
+      const backendErrors = err?.response?.data?.errors;
+      const message =
+        (Array.isArray(backendErrors) && backendErrors.length > 0
+          ? backendErrors[0]
+          : undefined) ||
+        err?.response?.data?.message ||
+        err?.response?.data?.data?.message ||
+        err?.message ||
+        "Registration failed";
+      toast.error(message, { id: loadingToast });
+      setErrors({ submit: message });
     }
-
-    const data = await register(form);
-    console.log(data);
-
-    toast.success("Account created! Please log in.", { id: loadingToast });
-    navigate("/login");
-  } catch (err: any) {
-    const backendErrors = err?.response?.data?.errors;
-    const message =
-      (Array.isArray(backendErrors) && backendErrors.length > 0
-        ? backendErrors[0]
-        : undefined) ||
-      err?.response?.data?.message ||
-      err?.response?.data?.data?.message ||
-      err?.message ||
-      "Registration failed";
-    toast.error(message, { id: loadingToast });
-    setErrors({ submit: message });
-  }
-};
+  };
 
   const strength = getPasswordStrength(form.password);
 
+  const setCoordinate = (axis: "lat" | "lng", value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      location: {
+        ...prev.location,
+        coordinates: {
+          ...prev.location.coordinates,
+          [axis]: value ? Number(value) : null,
+        },
+      },
+    }));
+  };
+
   return (
-    <div style={styles.page}>
+    <div
+      style={{
+        ...styles.page,
+        gridTemplateColumns: isCompact ? "1fr" : styles.page.gridTemplateColumns,
+      }}
+    >
       {/* ── LEFT PANEL ── */}
-      <div style={styles.left}>
-        <div style={styles.leftInner}>
-          {/* Logo */}
-          <div style={styles.logo}>
-            <div style={styles.logoIcon}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
-              </svg>
-            </div>
-            <span style={styles.logoText}>BloodConnect</span>
-          </div>
-
-          {/* Hero */}
-          <div style={styles.hero}>
-            <div style={styles.heroTag}>Donor Registration</div>
-            <h1 style={styles.heroTitle}>
-              Give the gift<br />
-              of life.{" "}
-              <span style={{ color: "rgba(255,255,255,0.45)" }}>
-                One drop<br />at a time.
-              </span>
-            </h1>
-            <p style={styles.heroDesc}>
-              Join thousands of verified donors making a real difference in
-              their communities every day.
-            </p>
-          </div>
-
-          {/* Stats */}
-          <div style={styles.statsGrid}>
-            {[
-              { num: "12K+", label: "Active donors" },
-              { num: "98%", label: "Match success" },
-              { num: "64", label: "Districts covered" },
-              { num: "3min", label: "Avg response" },
-            ].map((s) => (
-              <div key={s.label} style={styles.statCard}>
-                <div style={styles.statNum}>{s.num}</div>
-                <div style={styles.statLabel}>{s.label}</div>
+      {!isCompact && (
+        <div style={styles.left}>
+          <div style={styles.leftInner}>
+            {/* Logo */}
+            <div style={styles.logo}>
+              <div style={styles.logoIcon}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                  <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                </svg>
               </div>
-            ))}
+              <span style={styles.logoText}>BloodConnect</span>
+            </div>
+
+            {/* Hero */}
+            <div style={styles.hero}>
+              <div style={styles.heroTag}>Donor Registration</div>
+              <h1 style={styles.heroTitle}>
+                Give the gift<br />
+                of life.{" "}
+                <span style={{ color: "rgba(255,255,255,0.45)" }}>
+                  One drop<br />at a time.
+                </span>
+              </h1>
+              <p style={styles.heroDesc}>
+                Join thousands of verified donors making a real difference in
+                their communities every day.
+              </p>
+            </div>
+
+            {/* Stats */}
+            <div style={styles.statsGrid}>
+              {[
+                { num: "12K+", label: "Active donors" },
+                { num: "98%", label: "Match success" },
+                { num: "64", label: "Districts covered" },
+                { num: "3min", label: "Avg response" },
+              ].map((s) => (
+                <div key={s.label} style={styles.statCard}>
+                  <div style={styles.statNum}>{s.num}</div>
+                  <div style={styles.statLabel}>{s.label}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ── RIGHT PANEL ── */}
       <div style={styles.right}>
@@ -256,7 +359,7 @@ const handleDetectLocation = async () => {
               />
               <button
                 type="button"
-                onClick={() => set("role", "user")}
+                onClick={() => setRole("user")}
                 style={{
                   ...styles.roleToggleBtn,
                   color: form.role === "user" ? "#fff" : "#888",
@@ -266,11 +369,11 @@ const handleDetectLocation = async () => {
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
                 </svg>
-                Recipient
+                User
               </button>
               <button
                 type="button"
-                onClick={() => set("role", "donor")}
+                onClick={() => setRole("donor")}
                 style={{
                   ...styles.roleToggleBtn,
                   color: form.role === "donor" ? "#fff" : "#888",
@@ -284,11 +387,70 @@ const handleDetectLocation = async () => {
             </div>
           </div>
 
+          {/* Availability Toggle */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "10px 12px",
+              borderRadius: "12px",
+              border: "1px solid #E8E2DA",
+              background: "#F9F6F1",
+              marginBottom: "1.2rem",
+            }}
+          >
+            <div>
+              <div style={{ fontSize: "13px", fontWeight: 600, color: "#1A1A1A" }}>
+                Available for donation
+              </div>
+              <div style={{ fontSize: "11px", color: "#888", marginTop: "2px" }}>
+                {form.role === "donor"
+                  ? "Visible to blood requesters"
+                  : "Only donors can set availability"}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => form.role === "donor" && set("isAvailable", !form.isAvailable)}
+              disabled={form.role !== "donor"}
+              style={{
+                width: "48px",
+                height: "26px",
+                borderRadius: "13px",
+                border: "none",
+                background: form.isAvailable ? "#1D9E75" : "#D5D0CA",
+                cursor: form.role === "donor" ? "pointer" : "not-allowed",
+                position: "relative",
+                transition: "background 0.2s",
+                flexShrink: 0,
+                opacity: form.role === "donor" ? 1 : 0.7,
+              }}
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  top: "3px",
+                  left: form.isAvailable ? "25px" : "3px",
+                  width: "20px",
+                  height: "20px",
+                  borderRadius: "50%",
+                  background: "white",
+                  transition: "left 0.2s",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
+                }}
+              />
+            </button>
+          </div>
+          <div style={{ fontSize: "11px", color: "#888", marginBottom: "1.4rem" }}>
+            You can change availability later in your profile.
+          </div>
+
           {/* Header */}
           <div style={{ marginBottom: "1.5rem" }}>
             <h2 style={styles.formTitle}>Create your account</h2>
             <p style={styles.formSub}>
-              {form.role === "donor" ? "Already a donor?" : "Already have an account?"}{" "}
+              Already have an account?{" "}
               <Link to="/login" style={styles.link}>
                 Sign in here
               </Link>
@@ -341,727 +503,62 @@ const handleDetectLocation = async () => {
 
           {/* ── STEP 1 ── */}
           {step === 1 && (
-            <div style={styles.section}>
-              <div style={styles.sectionTitle}>Personal details</div>
-
-              <div style={styles.grid2}>
-                <Field label="Full name" error={errors.name}>
-                  <input
-                    style={{ ...styles.input, ...(errors.name ? styles.inputError : {}) }}
-                    value={form.name}
-                    onChange={(e) => set("name", e.target.value)}
-                    placeholder="Mostak Ahmed"
-                  />
-                </Field>
-                <Field label="Phone number" error={errors.phone}>
-                  <input
-                    style={{ ...styles.input, ...(errors.phone ? styles.inputError : {}) }}
-                    value={form.phone}
-                    onChange={(e) => set("phone", e.target.value)}
-                    placeholder="01712345678"
-                  />
-                </Field>
-              </div>
-
-              <Field label="Email address" error={errors.email}>
-                <input
-                  style={{ ...styles.input, ...(errors.email ? styles.inputError : {}) }}
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => set("email", e.target.value)}
-                  placeholder="mostak@gmail.com"
-                />
-              </Field>
-
-              <div style={styles.grid2}>
-                <Field label="Password" error={errors.password}>
-                  <input
-                    style={{ ...styles.input, ...(errors.password ? styles.inputError : {}) }}
-                    type="password"
-                    value={form.password}
-                    onChange={(e) => set("password", e.target.value)}
-                    placeholder="Min 8 characters"
-                  />
-                  {form.password && (
-                    <>
-                      <div style={{ display: "flex", gap: "3px", marginTop: "6px" }}>
-                        {[1, 2, 3, 4].map((i) => (
-                          <div
-                            key={i}
-                            style={{
-                              flex: 1,
-                              height: "3px",
-                              borderRadius: "2px",
-                              background: i <= strength.score ? strength.color : "#E8E2DA",
-                              transition: "background 0.2s",
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <div style={{ fontSize: "11px", color: strength.color, marginTop: "3px" }}>
-                        {strength.label}
-                      </div>
-                    </>
-                  )}
-                </Field>
-                <Field label="Confirm password" error={errors.confirmPassword}>
-                  <input
-                    style={{ ...styles.input, ...(errors.confirmPassword ? styles.inputError : {}) }}
-                    type="password"
-                    value={form.confirmPassword}
-                    onChange={(e) => set("confirmPassword", e.target.value)}
-                    placeholder="Re-enter password"
-                  />
-                </Field>
-              </div>
-
-              <NavBtns onNext={next} showBack={false} />
-            </div>
+            <StepAccount
+              form={form}
+              errors={errors}
+              strength={strength}
+              set={set}
+              setFieldRef={setFieldRef}
+              handleInputKeyDown={handleInputKeyDown}
+              onNext={next}
+            />
           )}
 
           {/* ── STEP 2 ── */}
           {step === 2 && (
-            <div style={styles.section}>
-              <div style={styles.sectionTitle}>Health information</div>
-
-              <Field label="Blood type" error={errors.bloodType}>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "8px" }}>
-                  {BLOOD_TYPES.map((bt) => (
-                    <button
-                      key={bt}
-                      onClick={() => set("bloodType", bt)}
-                      style={{
-                        ...styles.selectBtn,
-                        background: form.bloodType === bt ? "#C0392B" : "#F7F5F2",
-                        color: form.bloodType === bt ? "white" : "#666",
-                        borderColor: form.bloodType === bt ? "#C0392B" : "#E8E2DA",
-                      }}
-                    >
-                      {bt}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-
-              <Field label="Gender" error={errors.gender}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                  {["male", "female"].map((g) => (
-                    <button
-                      key={g}
-                      onClick={() => set("gender", g)}
-                      style={{
-                        ...styles.selectBtn,
-                        background: form.gender === g ? "#C0392B" : "#F7F5F2",
-                        color: form.gender === g ? "white" : "#666",
-                        borderColor: form.gender === g ? "#C0392B" : "#E8E2DA",
-                        textTransform: "capitalize",
-                      }}
-                    >
-                      {g}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-
-              <div style={styles.grid3}>
-                <Field label="Age" error={errors.age}>
-                  <input
-                    style={{ ...styles.input, ...(errors.age ? styles.inputError : {}) }}
-                    type="number"
-                    value={form.age}
-                    onChange={(e) => set("age", e.target.value)}
-                    placeholder="25"
-                    min={18}
-                    max={65}
-                  />
-                  <span style={styles.hint}>18–65 years</span>
-                </Field>
-                <Field label="Weight (kg)" error={errors.weight}>
-                  <input
-                    style={{ ...styles.input, ...(errors.weight ? styles.inputError : {}) }}
-                    type="number"
-                    value={form.weight}
-                    onChange={(e) => set("weight", e.target.value)}
-                    placeholder="65"
-                    min={50}
-                  />
-                  <span style={styles.hint}>Min 50 kg</span>
-                </Field>
-                <Field label="Date of birth">
-                  <input
-                    style={styles.input}
-                    type="date"
-                    value={form.dateOfBirth}
-                    onChange={(e) => set("dateOfBirth", e.target.value)}
-                  />
-                </Field>
-              </div>
-
-              <NavBtns onNext={next} onBack={back} />
-            </div>
+            <StepHealth
+              form={form}
+              errors={errors}
+              set={set}
+              setFieldRef={setFieldRef}
+              handleInputKeyDown={handleInputKeyDown}
+              focusField={focusField}
+              onNext={next}
+              onBack={back}
+            />
           )}
 
           {/* ── STEP 3 ── */}
           {step === 3 && (
-            <div style={styles.section}>
-              <div style={styles.sectionTitle}>Your location</div>
-
-              <button
-                onClick={handleDetectLocation}
-                disabled={detectingLocation}
-                style={styles.detectBtn}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-                </svg>
-                {detectingLocation ? "Detecting location..." : "Detect location"}
-              </button>
-
-              {errors.location && (
-                <p style={{ color: "#C0392B", fontSize: "12px", marginBottom: "8px" }}>
-                  {errors.location}
-                </p>
-              )}
-
-              <div style={styles.grid2}>
-                <Field label="City / Town" error={errors.city}>
-                  <input
-                    style={{ ...styles.input, ...(errors.city ? styles.inputError : {}) }}
-                    value={form.location.city}
-                    onChange={(e) => setLocation("city", e.target.value)}
-                    placeholder="Dhaka"
-                  />
-                </Field>
-                <Field label="State / Division">
-                  <input
-                    style={styles.input}
-                    value={form.location.state}
-                    onChange={(e) => setLocation("state", e.target.value)}
-                    placeholder="Dhaka Division"
-                  />
-                </Field>
-                <Field label="District">
-                  <input
-                    style={styles.input}
-                    value={form.location.state_district}
-                    onChange={(e) => setLocation("state_district", e.target.value)}
-                    placeholder="Dhaka District"
-                  />
-                </Field>
-                <Field label="County">
-                  <input
-                    style={styles.input}
-                    value={form.location.county}
-                    onChange={(e) => setLocation("county", e.target.value)}
-                    placeholder="County"
-                  />
-                </Field>
-                <Field label="Country" error={errors.country}>
-                  <input
-                    style={{ ...styles.input, ...(errors.country ? styles.inputError : {}) }}
-                    value={form.location.country}
-                    onChange={(e) => setLocation("country", e.target.value)}
-                    placeholder="Bangladesh"
-                  />
-                </Field>
-                <Field label="Postcode">
-                  <input
-                    style={styles.input}
-                    value={form.location.postcode}
-                    onChange={(e) => setLocation("postcode", e.target.value)}
-                    placeholder="1207"
-                  />
-                </Field>
-                <Field label="Latitude">
-                  <input
-                    style={styles.input}
-                    type="number"
-                    step="any"
-                    value={form.location.coordinates.lat ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        location: {
-                          ...prev.location,
-                          coordinates: {
-                            ...prev.location.coordinates,
-                            lat: e.target.value ? Number(e.target.value) : null,
-                          },
-                        },
-                      }))
-                    }
-                    placeholder="23.8103"
-                  />
-                </Field>
-                <Field label="Longitude">
-                  <input
-                    style={styles.input}
-                    type="number"
-                    step="any"
-                    value={form.location.coordinates.lng ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        location: {
-                          ...prev.location,
-                          coordinates: {
-                            ...prev.location.coordinates,
-                            lng: e.target.value ? Number(e.target.value) : null,
-                          },
-                        },
-                      }))
-                    }
-                    placeholder="90.4125"
-                  />
-                </Field>
-              </div>
-
-              <NavBtns onNext={next} onBack={back} />
-            </div>
+            <StepLocation
+              form={form}
+              errors={errors}
+              detectingLocation={detectingLocation}
+              setLocation={setLocation}
+              setCoordinate={setCoordinate}
+              setFieldRef={setFieldRef}
+              handleInputKeyDown={handleInputKeyDown}
+              onDetectLocation={handleDetectLocation}
+              onNext={next}
+              onBack={back}
+            />
           )}
 
           {/* ── STEP 4 ── */}
           {step === 4 && (
-            <div style={styles.section}>
-              <div style={styles.sectionTitle}>
-                Social links{" "}
-                <span style={{ fontSize: "11px", textTransform: "none", letterSpacing: 0, color: "#999", fontWeight: 400 }}>
-                  (optional)
-                </span>
-              </div>
-
-              {[
-                { key: "facebook", prefix: "facebook.com/", placeholder: "yourprofile" },
-                { key: "instagram", prefix: "instagram.com/", placeholder: "yourhandle" },
-                { key: "twitter", prefix: "x.com/", placeholder: "yourhandle" },
-              ].map(({ key, prefix, placeholder }) => (
-                <div key={key} style={{ marginBottom: "12px" }}>
-                  <label style={styles.label}>{key.charAt(0).toUpperCase() + key.slice(1)}</label>
-                  <div style={styles.socialField}>
-                    <span style={styles.socialPrefix}>{prefix}</span>
-                    <input
-                      style={styles.socialInput}
-                      value={(form.socialLinks as any)[key]}
-                      onChange={(e) => setSocial(key, e.target.value)}
-                      placeholder={placeholder}
-                    />
-                  </div>
-                </div>
-              ))}
-
-              <div style={styles.infoBox}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#BA7517" strokeWidth="2" style={{ flexShrink: 0, marginTop: "1px" }}>
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-                <p style={{ fontSize: "12px", color: "#633806", lineHeight: 1.6, margin: 0 }}>
-                  Your information is protected. Only your name, blood type, and
-                  availability are shown to those searching for donors.
-                </p>
-              </div>
-
-              {errors.submit && (
-                <p style={{ color: "#C0392B", fontSize: "13px", marginTop: "10px" }}>
-                  {errors.submit}
-                </p>
-              )}
-
-              <NavBtns
-                onNext={handleSubmit}
-                onBack={back}
-                nextLabel={loading ? "Creating account..." : "Create account"}
-                disabled={loading}
-              />
-            </div>
+            <StepSocials
+              form={form}
+              errors={errors}
+              loading={loading}
+              setSocial={setSocial}
+              setFieldRef={setFieldRef}
+              handleInputKeyDown={handleInputKeyDown}
+              onSubmit={handleSubmit}
+              onBack={back}
+            />
           )}
         </div>
       </div>
     </div>
   );
 }
-
-// ── Sub-components ──────────────────────────────────────
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "5px", marginBottom: "14px" }}>
-      <label style={styles.label}>{label}</label>
-      {children}
-      {error && <span style={styles.errorText}>{error}</span>}
-    </div>
-  );
-}
-
-function NavBtns({
-  onNext,
-  onBack,
-  nextLabel = "Continue →",
-  showBack = true,
-  disabled = false,
-}: {
-  onNext: () => void;
-  onBack?: () => void;
-  nextLabel?: string;
-  showBack?: boolean;
-  disabled?: boolean;
-}) {
-  return (
-    <div style={{ display: "flex", gap: "10px", marginTop: "1.5rem" }}>
-      {showBack && onBack && (
-        <button onClick={onBack} style={styles.btnBack}>
-          Back
-        </button>
-      )}
-      <button
-        onClick={onNext}
-        disabled={disabled}
-        style={{ ...styles.btnNext, opacity: disabled ? 0.7 : 1 }}
-      >
-        {nextLabel}
-      </button>
-    </div>
-  );
-}
-
-// ── Styles ──────────────────────────────────────────────
-
-const styles: Record<string, React.CSSProperties> = {
-  page: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1.15fr",
-    minHeight: "100vh",
-    fontFamily: "'DM Sans', sans-serif",
-  },
-  left: {
-    background: "#7B1E1E",
-    backgroundImage: "linear-gradient(135deg, #922B21 0%, #7B1E1E 60%, #5D1515 100%)",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    padding: "3rem",
-    position: "relative",
-    overflow: "hidden",
-  },
-  leftInner: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "3rem",
-    position: "relative",
-    zIndex: 1,
-  },
-  logo: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-  logoIcon: {
-    width: "36px",
-    height: "36px",
-    background: "rgba(255,255,255,0.15)",
-    borderRadius: "10px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoText: {
-    fontFamily: "'Playfair Display', serif",
-    fontSize: "20px",
-    color: "white",
-    fontWeight: 700,
-  },
-  hero: { maxWidth: "340px" },
-  heroTag: {
-    display: "inline-block",
-    background: "rgba(255,255,255,0.12)",
-    color: "rgba(255,255,255,0.8)",
-    fontSize: "11px",
-    fontWeight: 500,
-    letterSpacing: "1.5px",
-    textTransform: "uppercase",
-    padding: "6px 12px",
-    borderRadius: "20px",
-    marginBottom: "1.2rem",
-  },
-  heroTitle: {
-    fontFamily: "'Playfair Display', serif",
-    fontSize: "2.4rem",
-    lineHeight: 1.2,
-    color: "white",
-    fontWeight: 700,
-    marginBottom: "1rem",
-  },
-  heroDesc: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: "15px",
-    lineHeight: 1.7,
-    fontWeight: 300,
-  },
-  statsGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "10px",
-  },
-  statCard: {
-    background: "rgba(255,255,255,0.07)",
-    border: "0.5px solid rgba(255,255,255,0.12)",
-    borderRadius: "12px",
-    padding: "0.9rem 1.1rem",
-  },
-  statNum: {
-    fontSize: "1.5rem",
-    fontWeight: 600,
-    color: "white",
-    fontFamily: "'Playfair Display', serif",
-  },
-  statLabel: {
-    fontSize: "12px",
-    color: "rgba(255,255,255,0.5)",
-    marginTop: "2px",
-  },
-  right: {
-    background: "#FAFAF8",
-    overflowY: "auto",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    padding: "2.5rem",
-  },
-  rightInner: {
-    maxWidth: "520px",
-    width: "100%",
-    margin: "0 auto",
-  },
-  formTitle: {
-    fontFamily: "'Playfair Display', serif",
-    fontSize: "1.9rem",
-    fontWeight: 700,
-    color: "#1A1A1A",
-    marginBottom: "4px",
-  },
-  formSub: {
-    color: "#888",
-    fontSize: "14px",
-  },
-  link: {
-    color: "#C0392B",
-    textDecoration: "none",
-    fontWeight: 500,
-  },
-  steps: {
-    display: "flex",
-    alignItems: "center",
-    marginBottom: "1.8rem",
-  },
-  stepNum: {
-    width: "28px",
-    height: "28px",
-    borderRadius: "50%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "12px",
-    fontWeight: 500,
-    border: "1.5px solid",
-    transition: "all 0.2s",
-    flexShrink: 0,
-  },
-  section: {
-    animation: "fadeIn 0.25s ease",
-  },
-  sectionTitle: {
-    fontSize: "11px",
-    fontWeight: 500,
-    letterSpacing: "1px",
-    textTransform: "uppercase" as const,
-    color: "#C0392B",
-    marginBottom: "1rem",
-  },
-  grid2: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "14px",
-  },
-  grid3: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
-    gap: "14px",
-  },
-  label: {
-    fontSize: "12px",
-    fontWeight: 500,
-    color: "#777",
-    letterSpacing: "0.3px",
-  },
-  input: {
-    width: "100%",
-    height: "40px",
-    padding: "0 12px",
-    background: "#F7F5F2",
-    border: "1px solid #E8E2DA",
-    borderRadius: "8px",
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: "14px",
-    color: "#1A1A1A",
-    outline: "none",
-    boxSizing: "border-box" as const,
-  },
-  inputError: {
-    borderColor: "#E74C3C",
-  },
-  errorText: {
-    fontSize: "11px",
-    color: "#C0392B",
-  },
-  hint: {
-    fontSize: "11px",
-    color: "#999",
-    marginTop: "2px",
-  },
-  selectBtn: {
-    height: "40px",
-    border: "1px solid",
-    borderRadius: "8px",
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: "14px",
-    fontWeight: 500,
-    cursor: "pointer",
-    transition: "all 0.15s",
-  },
-  detectBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    background: "#FADBD8",
-    border: "1px solid #F5A9A3",
-    borderRadius: "8px",
-    padding: "0 16px",
-    height: "36px",
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: "13px",
-    fontWeight: 500,
-    color: "#C0392B",
-    cursor: "pointer",
-    marginBottom: "1rem",
-  },
-  socialField: {
-    display: "flex",
-    alignItems: "center",
-    border: "1px solid #E8E2DA",
-    borderRadius: "8px",
-    overflow: "hidden",
-    background: "#F7F5F2",
-    marginTop: "5px",
-  },
-  socialPrefix: {
-    padding: "0 12px",
-    height: "40px",
-    display: "flex",
-    alignItems: "center",
-    fontSize: "12px",
-    color: "#888",
-    borderRight: "1px solid #E8E2DA",
-    background: "white",
-    whiteSpace: "nowrap" as const,
-    flexShrink: 0,
-  },
-  socialInput: {
-    border: "none",
-    borderRadius: "0",
-    height: "40px",
-    background: "transparent",
-    flex: 1,
-    padding: "0 12px",
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: "14px",
-    color: "#1A1A1A",
-    outline: "none",
-    width: "100%",
-  },
-  infoBox: {
-    background: "#FEF9F0",
-    border: "1px solid #F9C74F",
-    borderRadius: "10px",
-    padding: "12px 14px",
-    marginTop: "1rem",
-    display: "flex",
-    gap: "10px",
-    alignItems: "flex-start",
-  },
-  btnBack: {
-    height: "44px",
-    padding: "0 20px",
-    border: "1px solid #E8E2DA",
-    borderRadius: "10px",
-    background: "transparent",
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: "14px",
-    fontWeight: 500,
-    color: "#888",
-    cursor: "pointer",
-  },
-  btnNext: {
-    flex: 1,
-    height: "44px",
-    background: "#C0392B",
-    color: "white",
-    border: "none",
-    borderRadius: "10px",
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: "14px",
-    fontWeight: 500,
-    cursor: "pointer",
-    transition: "all 0.15s",
-  },
-  roleToggleWrapper: {
-    marginBottom: "1.5rem",
-  },
-  roleToggleTrack: {
-    position: "relative" as const,
-    display: "inline-flex",
-    background: "#F0EDE8",
-    borderRadius: "12px",
-    padding: "4px",
-    width: "100%",
-    maxWidth: "280px",
-    boxShadow: "inset 0 1px 3px rgba(0,0,0,0.06)",
-  },
-  roleToggleSlider: {
-    position: "absolute" as const,
-    top: "4px",
-    left: "4px",
-    width: "calc(50% - 4px)",
-    height: "calc(100% - 8px)",
-    background: "#C0392B",
-    borderRadius: "9px",
-    transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-    boxShadow: "0 2px 8px rgba(192, 57, 43, 0.3)",
-  },
-  roleToggleBtn: {
-    position: "relative" as const,
-    zIndex: 1,
-    flex: 1,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "6px",
-    height: "38px",
-    border: "none",
-    background: "transparent",
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: "13px",
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "color 0.3s",
-    letterSpacing: "0.3px",
-  },
-};

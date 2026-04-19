@@ -29,11 +29,17 @@ const Navbar = ({ scrolled }: NavbarProps) => {
 
   // Fixed: was state.user, should be state.reduxSlice
   const { user, isAuthenticated } = useSelector((s: RootState) => s.user);
+  const isDonor = user?.role === "donor";
+  const canDonate = !isAuthenticated || isDonor;
+  const visibleNavLinks = navLinks.filter(
+    (link) => link.label !== "Donate Blood" || canDonate,
+  );
 // console.log(user, "in nabbar")
   const [menuOpen, setMenuOpen] = useState(false);
   const [rendered, setRendered] = useState(false);
   const [visible, setVisible] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // ── Logout ──────────────────────────────────────────
   const handleLogout = async () => {
@@ -84,6 +90,16 @@ const Navbar = ({ scrolled }: NavbarProps) => {
     return () => {
       document.body.style.overflow = "";
     };
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // ── User Avatar UI ───────────────────────────────────
@@ -158,23 +174,25 @@ const Navbar = ({ scrolled }: NavbarProps) => {
               My Profile
             </NavLink>
 
-            <NavLink
-              to="/my-donations"
-              onClick={() => setDropdownOpen(false)}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-dark
-                hover:bg-gray-50 hover:text-primary transition-colors"
-            >
-              <Icons.Blood className="!w-4 !h-4" />
-              My Donations
-              {(user?.totalDonations ?? 0) > 0 && (
-                <span
-                  className="ml-auto text-xxs font-bold bg-primary/10
-                  text-primary px-1.5 py-0.5 rounded-full"
-                >
-                  {user?.totalDonations}
-                </span>
-              )}
-            </NavLink>
+            {isDonor && (
+              <NavLink
+                to="/my-donations"
+                onClick={() => setDropdownOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-dark
+                  hover:bg-gray-50 hover:text-primary transition-colors"
+              >
+                <Icons.Blood className="!w-4 !h-4" />
+                My Donations
+                {(user?.totalDonations ?? 0) > 0 && (
+                  <span
+                    className="ml-auto text-xxs font-bold bg-primary/10
+                    text-primary px-1.5 py-0.5 rounded-full"
+                  >
+                    {user?.totalDonations}
+                  </span>
+                )}
+              </NavLink>
+            )}
 
             <NavLink
               to="/settings"
@@ -225,7 +243,7 @@ const Navbar = ({ scrolled }: NavbarProps) => {
 
             {/* Desktop nav */}
             <nav className="hidden lg:flex items-center gap-6">
-              {navLinks.map((link) => (
+              {visibleNavLinks.map((link) => (
                 <NavLink
                   key={link.label}
                   to={link.href}
@@ -242,7 +260,7 @@ const Navbar = ({ scrolled }: NavbarProps) => {
             {/* Desktop right side */}
             <div className="hidden lg:flex items-center gap-3">
               {isAuthenticated && user ? (
-                <UserAvatar />
+                !isMobile && <UserAvatar />
               ) : (
                 <NavLink to="/login">
                   <Button variant="outline" size="sm" radius="xs">
@@ -260,24 +278,7 @@ const Navbar = ({ scrolled }: NavbarProps) => {
             {/* Mobile right side */}
             <div className="flex lg:hidden items-center gap-2">
               {isAuthenticated && user ? (
-                // Show small avatar on mobile
-                <button
-                  onClick={() => {
-                    navigate("/profile");
-                  }}
-                  className="w-8 h-8 rounded-full bg-primary/10 border-2
-                    border-primary/30 center-flex"
-                >
-                  {user.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <Icons.User className="!w-4 !h-4 text-primary" />
-                  )}
-                </button>
+                isMobile && <UserAvatar />
               ) : (
                 <NavLink to="/login">
                   <Button variant="outline" size="xs" radius="xs">
@@ -387,7 +388,7 @@ const Navbar = ({ scrolled }: NavbarProps) => {
 
             {/* Nav links */}
             <nav className="flex-1 overflow-y-auto px-4 py-4">
-              {navLinks.map((link, index) => (
+              {visibleNavLinks.map((link, index) => (
                 <NavLink
                   key={link.label}
                   to={link.href}

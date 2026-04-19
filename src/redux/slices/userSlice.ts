@@ -11,9 +11,11 @@ export interface IReduxUser {
   avatar: string;
   bloodType: "A+" | "A-" | "B+" | "B-" | "O+" | "O-" | "AB+" | "AB-" | null;
   weight: number | null;
-  lastDonationDate: string | null;
-  totalDonations: number;
-  isAvailable: boolean;
+  lastDonationDate?: string | null;
+  totalDonations?: number;
+  isAvailable?: boolean;
+  lastReceivedDate?: string | null;
+  totalReceived?: number;
   location: {
     city: string;
     country: string;
@@ -31,7 +33,7 @@ export interface IReduxUser {
   };
   role: "donor" | "user" | "admin";
   isVerified: boolean;
-  isDonorVerified: boolean;
+  isDonorVerified?: boolean;
   isActive: boolean;
   communityFlags: number;
   createdAt: string;

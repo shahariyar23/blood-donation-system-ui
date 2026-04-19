@@ -16,6 +16,7 @@ import ResetPasswordPage from "../../../features/restPassword/ui/ResetPasswordPa
 import ProfilePage from "../../../features/profile/component/ProfilePage";
 import MyDonationsPage from "../../../features/myDonation/ui/MyDonation";
 import SettingsPage from "../../../features/mySetting/ui/MySettingPage";
+import VerifyOtpPage from "../../../features/register/ui/VerifyOtpPage";
 
 export const router = createBrowserRouter([
   {
@@ -114,6 +115,14 @@ export const router = createBrowserRouter([
         element: (
           <GuestRoute>
             <RegisterPage />
+          </GuestRoute>
+        ),
+      },
+      {
+        path: "/verify-otp",
+        element: (
+          <GuestRoute>
+            <VerifyOtpPage />
           </GuestRoute>
         ),
       },

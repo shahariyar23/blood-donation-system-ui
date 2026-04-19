@@ -4,56 +4,37 @@ import {
   getSessionsApi,
   logoutSessionApi,
   logoutOtherSessionsApi,
+  deactivateAccountApi,
+  deleteAccountApi,
   type Session,
 } from "../service/settingService";
 
 interface SettingToggleProps {
-  label:    string;
-  sub:      string;
-  value:    boolean;
+  label: string;
+  sub: string;
+  value: boolean;
   onChange: (v: boolean) => void;
 }
 
 function SettingToggle({ label, sub, value, onChange }: SettingToggleProps) {
+  const trackClass = value ? "bg-[#1D9E75]" : "bg-[#D5D0CA]";
+  const knobClass = value ? "translate-x-6" : "translate-x-0";
+
   return (
-    <div style={{
-      display:        "flex",
-      alignItems:     "center",
-      justifyContent: "space-between",
-      padding:        "14px 0",
-      borderBottom:   "1px solid #F0EDE8",
-    }}>
+    <div className="flex items-center justify-between py-3.5">
       <div>
-        <div style={{ fontSize: "14px", fontWeight: 500, color: "#1A1A1A" }}>{label}</div>
-        <div style={{ fontSize: "12px", color: "#999", marginTop: "2px" }}>{sub}</div>
+        <div className="text-sm font-medium text-[#1A1A1A]">{label}</div>
+        <div className="mt-0.5 text-xs text-[#999]">{sub}</div>
       </div>
       <button
         type="button"
         onClick={() => onChange(!value)}
-        style={{
-          width:        "44px",
-          height:       "24px",
-          borderRadius: "12px",
-          border:       "none",
-          background:   value ? "#1D9E75" : "#D5D0CA",
-          cursor:       "pointer",
-          position:     "relative",
-          transition:   "background 0.2s",
-          flexShrink:   0,
-          padding:      0,
-        }}
+        aria-pressed={value}
+        className={`relative h-6 w-12 rounded-full transition-colors ${trackClass}`}
       >
-        <span style={{
-          position:     "absolute",
-          top:          "2px",
-          left:         value ? "22px" : "2px",
-          width:        "20px",
-          height:       "20px",
-          borderRadius: "50%",
-          background:   "white",
-          transition:   "left 0.2s",
-          boxShadow:    "0 1px 3px rgba(0,0,0,0.15)",
-        }}/>
+        <span
+          className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${knobClass}`}
+        />
       </button>
     </div>
   );
@@ -61,14 +42,15 @@ function SettingToggle({ label, sub, value, onChange }: SettingToggleProps) {
 
 function SettingSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={s.card}>
-      <p style={s.cardTitle}>{title}</p>
-      {children}
+    <div className="mb-5 rounded-2xl border border-[#E8E2DA] bg-white px-5 py-6 sm:px-7">
+      <p className="mb-2 text-[11px] font-medium uppercase tracking-[1px] text-[#C0392B]">
+        {title}
+      </p>
+      <div className="divide-y divide-[#F0EDE8]">{children}</div>
     </div>
   );
 }
 
-/** Return emoji based on device type from API */
 function deviceIcon(session: Session): string {
   const type = session.deviceDetails?.type ?? "";
   if (type === "mobile") return "📱";
@@ -78,28 +60,29 @@ function deviceIcon(session: Session): string {
 
 export default function SettingsPage() {
   const [notif, setNotif] = useState({
-    bloodRequests:    true,
-    donorResponses:   true,
+    bloodRequests: true,
+    donorResponses: true,
     requestFulfilled: true,
-    systemUpdates:    false,
-    emailDigest:      true,
-    smsAlerts:        false,
+    systemUpdates: false,
+    emailDigest: true,
+    smsAlerts: false,
   });
 
   const [privacy, setPrivacy] = useState({
-    showPhone:      false,
-    showEmail:      false,
-    showLocation:   true,
-    showDonations:  true,
-    showSocials:    true,
+    showPhone: false,
+    showEmail: false,
+    showLocation: true,
+    showDonations: true,
+    showSocials: true,
   });
 
-  // ── Sessions state ────────────────────────────────────────
-  const [sessions, setSessions]             = useState<Session[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
-  const [actionLoading, setActionLoading]   = useState<string | null>(null); // sessionId or "all"
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [accountActionLoading, setAccountActionLoading] = useState<
+    "deactivate" | "delete" | null
+  >(null);
 
-  // Fetch sessions on mount
   const fetchSessions = useCallback(async () => {
     try {
       setSessionsLoading(true);
@@ -116,7 +99,6 @@ export default function SettingsPage() {
     fetchSessions();
   }, [fetchSessions]);
 
-  // Logout a single (non-current) session
   const handleLogoutSession = async (sessionId: string) => {
     try {
       setActionLoading(sessionId);
@@ -133,7 +115,6 @@ export default function SettingsPage() {
     }
   };
 
-  // Logout all other sessions
   const handleLogoutAllOthers = async () => {
     try {
       setActionLoading("all");
@@ -147,20 +128,109 @@ export default function SettingsPage() {
     }
   };
 
-  const toggleNotif  = (key: keyof typeof notif)  => (v: boolean) => setNotif((p)  => ({ ...p, [key]: v }));
-  const togglePrivacy = (key: keyof typeof privacy) => (v: boolean) => setPrivacy((p) => ({ ...p, [key]: v }));
+  const toggleNotif = (key: keyof typeof notif) => (v: boolean) =>
+    setNotif((p) => ({ ...p, [key]: v }));
+  const togglePrivacy = (key: keyof typeof privacy) => (v: boolean) =>
+    setPrivacy((p) => ({ ...p, [key]: v }));
+
+  const confirmAction = (options: {
+    title: string;
+    message: string;
+    confirmLabel: string;
+    onConfirm: () => Promise<void> | void;
+  }) => {
+    toast(
+      (t) => (
+        <div className="w-72 rounded-xs border border-[#E8E2DA] bg-white p-4 shadow-lg">
+          <div className="text-sm font-semibold text-[#1A1A1A]">
+            {options.title}
+          </div>
+          <div className="mt-1 text-xs text-[#888]">{options.message}</div>
+          <div className="mt-3 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => toast.dismiss(t.id)}
+              className="rounded-md border border-[#E8E2DA] px-3 py-1 text-xs font-medium text-[#666] hover:bg-[#F7F5F2]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                toast.dismiss(t.id);
+                void options.onConfirm();
+              }}
+              className="rounded-xs border border-[#FADBD8] px-3 py-1 text-xs font-medium text-[#E74C3C] hover:bg-[#FFF5F5]"
+            >
+              {options.confirmLabel}
+            </button>
+          </div>
+        </div>
+      ),
+      { duration: Infinity },
+    );
+  };
+
+  const handleDeactivate = () => {
+    if (accountActionLoading) return;
+    confirmAction({
+      title: "Deactivate account?",
+      message: "Hides your profile. You can reactivate anytime by logging in.",
+      confirmLabel: "Deactivate",
+      onConfirm: async () => {
+        try {
+          setAccountActionLoading("deactivate");
+          await deactivateAccountApi();
+          toast.success("Account deactivated");
+        } catch (err: unknown) {
+          const msg =
+            (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+            "Failed to deactivate account";
+          toast.error(msg);
+        } finally {
+          setAccountActionLoading(null);
+        }
+      },
+    });
+  };
+
+  const handleDelete = () => {
+    if (accountActionLoading) return;
+    confirmAction({
+      title: "Delete account permanently?",
+      message: "All your data will be erased. This cannot be undone.",
+      confirmLabel: "Delete",
+      onConfirm: async () => {
+        try {
+          setAccountActionLoading("delete");
+          await deleteAccountApi("user_requested");
+          toast.success("Account deleted");
+        } catch (err: unknown) {
+          const msg =
+            (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+            "Failed to delete account";
+          toast.error(msg);
+        } finally {
+          setAccountActionLoading(null);
+        }
+      },
+    });
+  };
+
+  const cardClass = "mb-5 rounded-2xl border border-[#E8E2DA] bg-white px-5 py-6 sm:px-7";
 
   return (
-    <div style={s.page}>
-      <div style={s.container}>
-
-        {/* header */}
-        <div style={s.pageHeader}>
-          <h1 style={s.pageTitle}>Settings</h1>
-          <p style={s.pageSubtitle}>Manage your notifications, privacy and security</p>
+    <div className="min-h-screen bg-[#FAFAF8]">
+      <div className="mx-auto w-full max-w-[720px] px-4 pb-20 pt-8 sm:px-6">
+        <div className="mb-7">
+          <h1 className="mb-1 font-serif text-2xl font-bold text-[#1A1A1A]">
+            Settings
+          </h1>
+          <p className="text-sm text-[#888]">
+            Manage your notifications, privacy and security
+          </p>
         </div>
 
-        {/* ── notifications ── */}
         <SettingSection title="Notifications">
           <SettingToggle
             label="Blood requests nearby"
@@ -192,17 +262,14 @@ export default function SettingsPage() {
             value={notif.emailDigest}
             onChange={toggleNotif("emailDigest")}
           />
-          <div style={{ borderBottom: "none" }}>
-            <SettingToggle
-              label="SMS alerts"
-              sub="Urgent blood requests via SMS (charges may apply)"
-              value={notif.smsAlerts}
-              onChange={toggleNotif("smsAlerts")}
-            />
-          </div>
+          <SettingToggle
+            label="SMS alerts"
+            sub="Urgent blood requests via SMS (charges may apply)"
+            value={notif.smsAlerts}
+            onChange={toggleNotif("smsAlerts")}
+          />
         </SettingSection>
 
-        {/* ── privacy ── */}
         <SettingSection title="Privacy">
           <SettingToggle
             label="Show phone number"
@@ -236,83 +303,65 @@ export default function SettingsPage() {
           />
         </SettingSection>
 
-        {/* ── active sessions ── */}
-        <div style={s.card}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-            <p style={{ ...s.cardTitle, margin: 0 }}>Active sessions</p>
+        <div className={cardClass}>
+          <div className="mb-4 flex items-center justify-between">
+            <p className="text-[11px] font-medium uppercase tracking-[1px] text-[#C0392B]">
+              Active sessions
+            </p>
             {sessions.filter((s) => !s.current).length > 0 && (
               <button
                 type="button"
                 onClick={handleLogoutAllOthers}
                 disabled={actionLoading === "all"}
-                style={{
-                  ...s.btnOutline,
-                  opacity: actionLoading === "all" ? 0.6 : 1,
-                  cursor: actionLoading === "all" ? "not-allowed" : "pointer",
-                }}
+                className="rounded-md border border-[#E8E2DA] px-4 py-1.5 text-xs font-medium text-[#888] hover:bg-[#F7F5F2] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {actionLoading === "all" ? "Logging out…" : "Log out all others"}
               </button>
             )}
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div className="flex flex-col gap-2.5">
             {sessionsLoading ? (
-              // Loading skeleton
               [1, 2, 3].map((i) => (
-                <div key={i} style={{
-                  padding:      "16px",
-                  background:   "#F7F5F2",
-                  border:       "1px solid #E8E2DA",
-                  borderRadius: "10px",
-                  height:       "62px",
-                  animation:    "pulse 1.5s ease-in-out infinite",
-                }}/>
+                <div
+                  key={i}
+                  className="h-[62px] rounded-xl border border-[#E8E2DA] bg-[#F7F5F2] animate-pulse"
+                />
               ))
             ) : sessions.length === 0 ? (
-              <div style={{
-                padding:    "24px",
-                textAlign:  "center",
-                color:      "#888",
-                fontSize:   "14px",
-              }}>
+              <div className="rounded-xl border border-dashed border-[#E8E2DA] px-6 py-8 text-center text-sm text-[#888]">
                 No active sessions found
               </div>
             ) : (
               sessions.map((session) => (
-                <div key={session.id} style={{
-                  display:      "flex",
-                  alignItems:   "center",
-                  justifyContent:"space-between",
-                  padding:      "12px 16px",
-                  background:   session.current ? "#F0FAF5" : "#F7F5F2",
-                  border:       `1px solid ${session.current ? "#9FE1CB" : "#E8E2DA"}`,
-                  borderRadius: "10px",
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{
-                      width:          "38px",
-                      height:         "38px",
-                      borderRadius:   "8px",
-                      background:     session.current ? "#1D9E75" : "#E8E2DA",
-                      display:        "flex",
-                      alignItems:     "center",
-                      justifyContent: "center",
-                      fontSize:       "18px",
-                      flexShrink:     0,
-                    }}>
+                <div
+                  key={session.id}
+                  className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
+                    session.current
+                      ? "border-[#9FE1CB] bg-[#F0FAF5]"
+                      : "border-[#E8E2DA] bg-[#F7F5F2]"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-9 w-9 items-center justify-center rounded-lg text-lg ${
+                        session.current
+                          ? "bg-[#1D9E75] text-white"
+                          : "bg-[#E8E2DA]"
+                      }`}
+                    >
                       {deviceIcon(session)}
                     </div>
                     <div>
-                      <div style={{ fontSize: "14px", fontWeight: 500, color: "#1A1A1A", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <div className="flex items-center gap-2 text-sm font-medium text-[#1A1A1A]">
                         {session.device}
                         {session.current && (
-                          <span style={{ fontSize: "10px", background: "#1D9E75", color: "white", padding: "1px 8px", borderRadius: "10px" }}>
+                          <span className="rounded-full bg-[#1D9E75] px-2 py-0.5 text-[10px] text-white">
                             Current
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: "12px", color: "#888" }}>
+                      <div className="text-xs text-[#888]">
                         {session.location} · {session.lastActive}
                       </div>
                     </div>
@@ -322,11 +371,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => handleLogoutSession(session.id)}
                       disabled={actionLoading === session.id}
-                      style={{
-                        ...s.btnDanger,
-                        opacity: actionLoading === session.id ? 0.6 : 1,
-                        cursor: actionLoading === session.id ? "not-allowed" : "pointer",
-                      }}
+                      className="rounded-md border border-[#FADBD8] px-4 py-1.5 text-xs font-medium text-[#E74C3C] hover:bg-[#FFF5F5] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {actionLoading === session.id ? "Logging out…" : "Log out"}
                     </button>
@@ -337,77 +382,51 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* ── danger zone ── */}
-        <div style={s.card}>
-          <p style={s.cardTitle}>Danger zone</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <div style={{
-              display:        "flex",
-              alignItems:     "center",
-              justifyContent: "space-between",
-              padding:        "14px 16px",
-              background:     "#FFF5F5",
-              border:         "1px solid #FADBD8",
-              borderRadius:   "10px",
-            }}>
+        <div className={cardClass}>
+          <p className="mb-4 text-[11px] font-medium uppercase tracking-[1px] text-[#C0392B]">
+            Danger zone
+          </p>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between rounded-xl border border-[#FADBD8] bg-[#FFF5F5] px-4 py-3">
               <div>
-                <div style={{ fontSize: "14px", fontWeight: 500, color: "#922B21" }}>
+                <div className="text-sm font-medium text-[#922B21]">
                   Deactivate account
                 </div>
-                <div style={{ fontSize: "12px", color: "#C0392B", marginTop: "2px" }}>
+                <div className="mt-0.5 text-xs text-[#C0392B]">
                   Hides your profile. You can reactivate anytime by logging in.
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => toast.error("This will hide your profile from all searches.")}
-                style={s.btnDanger}
+                onClick={handleDeactivate}
+                disabled={accountActionLoading === "deactivate"}
+                className="rounded-xs border border-[#FADBD8] px-4 py-1.5 text-xs font-medium text-[#E74C3C] hover:bg-[#FFF5F5] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Deactivate
+                {accountActionLoading === "deactivate" ? "Working…" : "Deactivate"}
               </button>
             </div>
 
-            <div style={{
-              display:        "flex",
-              alignItems:     "center",
-              justifyContent: "space-between",
-              padding:        "14px 16px",
-              background:     "#FFF5F5",
-              border:         "1px solid #FADBD8",
-              borderRadius:   "10px",
-            }}>
+            <div className="flex items-center justify-between rounded-xl border border-[#FADBD8] bg-[#FFF5F5] px-4 py-3">
               <div>
-                <div style={{ fontSize: "14px", fontWeight: 500, color: "#922B21" }}>
+                <div className="text-sm font-medium text-[#922B21]">
                   Delete account permanently
                 </div>
-                <div style={{ fontSize: "12px", color: "#C0392B", marginTop: "2px" }}>
+                <div className="mt-0.5 text-xs text-[#C0392B]">
                   All your data will be erased. This cannot be undone.
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => toast.error("Permanent deletion cannot be undone.")}
-                style={{ ...s.btnDanger, borderColor: "#E74C3C", color: "#E74C3C" }}
+                onClick={handleDelete}
+                disabled={accountActionLoading === "delete"}
+                className="rounded-xs border border-[#FADBD8] px-4 py-1.5 text-xs font-medium text-[#E74C3C] hover:bg-[#FFF5F5] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Delete
+                {accountActionLoading === "delete" ? "Working…" : "Delete"}
               </button>
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
 }
-
-const s: Record<string, React.CSSProperties> = {
-  page:        { minHeight: "100vh", background: "#FAFAF8", fontFamily: "'DM Sans', sans-serif" },
-  container:   { maxWidth: "720px", margin: "0 auto", padding: "32px 24px 80px" },
-  pageHeader:  { marginBottom: "28px" },
-  pageTitle:   { fontFamily: "'Playfair Display', serif", fontSize: "1.8rem", fontWeight: 700, color: "#1A1A1A", margin: "0 0 4px" },
-  pageSubtitle:{ fontSize: "14px", color: "#888", margin: 0 },
-  card:        { background: "#fff", border: "1px solid #E8E2DA", borderRadius: "16px", padding: "24px 28px", marginBottom: "20px" },
-  cardTitle:   { fontSize: "11px", fontWeight: 500, letterSpacing: "1px", textTransform: "uppercase" as const, color: "#C0392B", marginBottom: "4px" },
-  btnOutline:  { height: "34px", padding: "0 16px", background: "transparent", color: "#888", border: "1px solid #E8E2DA", borderRadius: "8px", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: 500, cursor: "pointer" },
-  btnDanger:   { height: "34px", padding: "0 16px", background: "transparent", color: "#E74C3C", border: "1px solid #FADBD8", borderRadius: "8px", fontFamily: "'DM Sans', sans-serif", fontSize: "13px", fontWeight: 500, cursor: "pointer", flexShrink: 0 },
-};

@@ -109,7 +109,7 @@ export default function MyDonationsPage() {
         </div>
 
         {/* stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "14px", marginBottom: "24px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px", marginBottom: "24px" }}>
           {[
             { label: "Total donations", value: donations.length,  icon: "🩸" },
             { label: "Units donated",   value: totalUnits,         icon: "💉" },
@@ -126,8 +126,8 @@ export default function MyDonationsPage() {
 
         {/* filter tabs */}
         <div style={s.card}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-            <div style={{ display: "flex", gap: "8px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px", flexWrap: "wrap", rowGap: "10px" }}>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
               {(["all", "verified", "pending"] as const).map((f) => (
                 <button
                   key={f}
@@ -195,6 +195,8 @@ function DonationCard({ donation: d }: { donation: Donation }) {
       padding:      "16px 20px",
       display:      "flex",
       alignItems:   "center",
+      flexWrap:     "wrap",
+      rowGap:       "10px",
       gap:          "16px",
       background:   "#FAFAF8",
       transition:   "border-color 0.15s",

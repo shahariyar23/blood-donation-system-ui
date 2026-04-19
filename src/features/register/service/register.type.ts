@@ -18,6 +18,8 @@ export interface RegisterLocation {
 
 export interface RegisterFormData {
   role: "user" | "donor";
+  isAvailable: boolean;
+  avatar: File | null;
   name: string;
   email: string;
   phone: string;
@@ -28,6 +30,8 @@ export interface RegisterFormData {
   age: string;
   weight: string;
   dateOfBirth: string;
+  totalDonations?: string;
+  lastDonationDate?: string;
   location: RegisterLocation;
   socialLinks: {
     facebook: string;
@@ -37,7 +41,9 @@ export interface RegisterFormData {
 }
 
 export interface RegisterPayload {
+  avatar?: string | null;
   role: "user" | "donor";
+  isAvailable?: boolean;
   name: string;
   email: string;
   phone: string;
@@ -47,6 +53,8 @@ export interface RegisterPayload {
   age: number | null;
   weight: number | null;
   dateOfBirth: string | null;
+  totalDonations?: number;
+  lastDonationDate?: string | null;
   location: RegisterLocation;
   socialLinks: {
     facebook: string | null;

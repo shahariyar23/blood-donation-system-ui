@@ -105,7 +105,7 @@
 
   /* Card for donor info */
   .donor-card{
-    @apply bg-white rounded-xl shadow-md p-6
+    @apply bg-white rounded-xs shadow-md p-6
            hover:shadow-xl transition-all duration-300;
   }
 
