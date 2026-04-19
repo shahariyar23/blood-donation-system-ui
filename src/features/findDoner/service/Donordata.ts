@@ -95,6 +95,7 @@ export const mapApiDonorToDonor = (donor: ApiDonor): Donor => ({
   location: donor.location?.city
     ?? donor.location?.displayName
     ?? "Unknown location",
+
   distance: typeof donor.distanceKm === "number"
     ? Number(donor.distanceKm.toFixed(1))
     : 0,
@@ -103,5 +104,4 @@ export const mapApiDonorToDonor = (donor: ApiDonor): Donor => ({
   isAvailable: Boolean(donor.isAvailable),
   isDonorVerified: Boolean(donor.isDonorVerified),
   avatar: donor.avatar,
-  primarySocialLink: donor?.primarySocialLink,
 });
