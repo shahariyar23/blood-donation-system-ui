@@ -101,7 +101,7 @@ const DonorDetailsModal = ({ donor, isOpen, onClose }: DonorDetailsModalProps) =
 
   const donorId = donor.id;
   const bloodType = profile?.bloodType ?? donor.bloodType;
-  const collectionId = authUser?.id || authUser?._id;
+  const collectionId = authUser?._id;
 
   const handleRequestBlood = async () => {
     console.log(authUser)

@@ -63,7 +63,7 @@ export const BLOOD_GROUPS = ["All", "A+", "A-", "B+", "B-", "O+", "O-", "AB+", "
 
 export const DISTANCE_OPTIONS = [5, 10, 20, 30];
 
-export const SORT_OPTIONS = [
+export const SORT_OPTIONS: Array<{ label: string; value: SortBy }> = [
   { label: "Nearest First",  value: "distance"  },
   { label: "Most Donations", value: "donations" },
 ];

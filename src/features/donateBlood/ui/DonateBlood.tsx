@@ -105,8 +105,11 @@ const DonateBlood = () => {
   const {
     getLocation,
     loading: locationLoading,
-    helper: locationHelper,
   } = useLocation();
+
+  const locationHelper = locationLoading
+    ? "Detecting your current location..."
+    : "Use the location icon to auto-fill your address.";
 
   // ── Handle change ───────────────────────────
   const handleChange = (name: string, value: any) => {
