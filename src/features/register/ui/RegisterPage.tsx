@@ -9,7 +9,6 @@ import { StepAccount } from "../container/StepAccount";
 import { StepHealth } from "../container/StrpHealth";
 import { StepLocation } from "../container/StepLocation";
 import { StepSocials } from "../container/StepSocial";
-import { sendOtpApi } from "../service/otpService";
 
 
 
@@ -43,6 +42,7 @@ export default function RegisterPage() {
   const { register, loading } = useRegister();
   const [step, setStep] = useState(1);
   const { getLocation, loading: detectingLocation } = useLocation();
+  const submitLockRef = useRef(false);
   const fieldRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [isCompact, setIsCompact] = useState(false);
 
@@ -219,8 +219,10 @@ export default function RegisterPage() {
   };
 
   const handleSubmit = async () => {
+    if (loading || submitLockRef.current) return;
     if (!validateStep(4)) return;
 
+    submitLockRef.current = true;
     const loadingToast = toast.loading("Creating account...");
 
     try {
@@ -249,14 +251,7 @@ export default function RegisterPage() {
         setForm(finalForm);
       }
 
-      const data = await register(finalForm);
-      console.log(data);
-
-      try {
-        await sendOtpApi(finalForm.email.trim());
-      } catch {
-        toast.error("OTP send failed. You can resend from the verification page.");
-      }
+      await register(finalForm);
 
       toast.success("Account created! Verify your email.", { id: loadingToast });
       navigate(`/verify-otp?email=${encodeURIComponent(finalForm.email.trim())}`);
@@ -272,6 +267,8 @@ export default function RegisterPage() {
         "Registration failed";
       toast.error(message, { id: loadingToast });
       setErrors({ submit: message });
+    } finally {
+      submitLockRef.current = false;
     }
   };
 
