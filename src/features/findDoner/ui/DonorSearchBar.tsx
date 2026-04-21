@@ -2,6 +2,8 @@ import MainContainer from "../../../shared/main-container/MainContainer";
 import CustomButton from "../../../shared/button/CustomButton";
 import { Icons } from "../../../shared/icons/Icons";
 import { BLOOD_GROUPS, DISTANCE_OPTIONS } from "../service/Donordata";
+import { useSelector } from "react-redux";
+import type { RootState } from "../../../redux/store";
 
 interface DonorSearchBarProps {
   bloodType: string;
@@ -20,6 +22,7 @@ const DonorSearchBar = ({
   onLocationChange,
   onDistanceChange,
 }: DonorSearchBarProps) => {
+  const reduxUser = useSelector((state: RootState) => state.user.user);
   return (
     <div className="-mt-8 relative z-10 mb-6">
       <MainContainer>
@@ -52,8 +55,9 @@ const DonorSearchBar = ({
               <input
                 type="text"
                 placeholder="Enter area or city"
-                value={location}
+                value={reduxUser?.location?.city ?? location}
                 onChange={(e) => onLocationChange(e.target.value)}
+                readOnly
                 className="outline-none bg-transparent text-sm text-dark w-full"
               />
             </div>

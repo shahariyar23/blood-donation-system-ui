@@ -1,22 +1,49 @@
+import { useState } from "react";
 import CustomButton from "../../../shared/button/CustomButton";
 import { Icons } from "../../../shared/icons/Icons";
 import type { Donor } from "../service/Donordata";
+import DonorDetailsModal from "./DonorDetailsModal";
 
 interface DonorCardProps {
   donor: Donor;
 }
 
 const DonorCard = ({ donor }: DonorCardProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleOpen = () => setIsOpen(true);
+  const handleClose = () => setIsOpen(false);
+
   return (
-    <div className="donor-card hover:-translate-y-1 transition-all duration-300">
+    <>
+      <div
+        className="donor-card hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+        role="button"
+        tabIndex={0}
+        onClick={handleOpen}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleOpen();
+          }
+        }}
+      >
 
       {/* Top row */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           {/* Avatar */}
           <div className="w-12 h-12 rounded-full bg-red-50 border-2 border-red-100
-            center-flex font-black text-primary text-lg shrink-0">
-            {donor.name.charAt(0)}
+            center-flex font-black text-primary text-lg shrink-0 overflow-hidden">
+            {donor?.avatar ? (
+              <img
+                src={donor.avatar}
+                alt={donor.name}
+                className="w-full h-full rounded-full object-cover"
+              />
+            ) : (
+              donor.name.charAt(0)
+            )}
           </div>
           <div>
             <div className="flex items-center gap-1.5">
@@ -67,13 +94,22 @@ const DonorCard = ({ donor }: DonorCardProps) => {
           variant={donor.isAvailable ? "primary" : "ghost"}
           size="xs"
           radius="lg"
-          disabled={!donor.isAvailable}
+          disabled={!donor.isAvailable || !donor.primarySocialLink}
           leftIcon={<Icons.Phone className="w-3 h-3" />}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (donor.primarySocialLink) {
+              window.open(donor.primarySocialLink, "_blank", "noopener,noreferrer");
+            }
+          }}
         >
           Contact
         </CustomButton>
       </div>
-    </div>
+      </div>
+
+      <DonorDetailsModal donor={donor} isOpen={isOpen} onClose={handleClose} />
+    </>
   );
 };
 

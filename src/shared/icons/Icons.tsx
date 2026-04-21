@@ -16,7 +16,7 @@ import { MdDashboard, MdEmail, MdBloodtype } from "react-icons/md";
 import { GrLocationPin } from "react-icons/gr";
 import { AiOutlineLoading, AiOutlineMenu, AiOutlineSetting } from "react-icons/ai";
 import { BsCheckCircleFill, BsClockHistory, BsInstagram, BsMailbox, BsShield, BsTrash } from "react-icons/bs";
-import { CiTwitter } from "react-icons/ci";
+import { CiLogin, CiTwitter } from "react-icons/ci";
 import { CgClose, CgCopyright } from "react-icons/cg";
 import { IoIosArrowBack, IoIosArrowForward, IoMdArrowForward } from "react-icons/io";
 import { LuHandshake } from "react-icons/lu";
@@ -82,5 +82,6 @@ export const Icons = {
   ArrowBack: createIcon(IoIosArrowBack),
   AlertCircle: createIcon(IoAlertCircleOutline),
   Loading: createIcon(AiOutlineLoading),
-  Shield: createIcon(BsShield)
+  Shield: createIcon(BsShield),
+  Login: createIcon(CiLogin)
 };

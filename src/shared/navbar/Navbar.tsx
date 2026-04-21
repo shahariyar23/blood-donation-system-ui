@@ -1,8 +1,13 @@
-import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import { Icons } from "../icons/Icons";
 import Button from "../button/CustomButton";
 import MainContainer from "../main-container/MainContainer";
+import { clearUser } from "../../redux/slices/userSlice";
+import { useDispatch, useSelector } from "react-redux";
+import type { RootState } from "../../redux/store";
+import { logoutApi } from "../../features/login/service/loginService";
+import toast from "react-hot-toast";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -18,42 +23,233 @@ interface NavbarProps {
 }
 
 const Navbar = ({ scrolled }: NavbarProps) => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fixed: was state.user, should be state.reduxSlice
+  const { user, isAuthenticated } = useSelector((s: RootState) => s.user);
+  const isDonor = user?.role === "donor";
+  const canDonate = !isAuthenticated || isDonor;
+  const visibleNavLinks = navLinks.filter(
+    (link) => link.label !== "Donate Blood" || canDonate,
+  );
+// console.log(user, "in nabbar")
   const [menuOpen, setMenuOpen] = useState(false);
+  const [rendered, setRendered] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // ── Logout ──────────────────────────────────────────
+  const handleLogout = async () => {
+    try {
+      await logoutApi();
+    } finally {
+      dispatch(clearUser());
+      toast.success("Logout successfully!");
+      navigate("/login");
+    }
+  };
+  // console.log(user)
+
+  // ── Close dropdown on outside click ─────────────────
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // ── Mobile menu ──────────────────────────────────────
+  const openMenu = () => {
+    setRendered(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setVisible(true));
+    });
+    setMenuOpen(true);
+    document.body.style.overflow = "hidden";
+  };
+
+  const closeMenu = () => {
+    setVisible(false);
+    setMenuOpen(false);
+    document.body.style.overflow = "";
+    setTimeout(() => setRendered(false), 320);
+  };
+
+  const toggleMenu = () => (menuOpen ? closeMenu() : openMenu());
+
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // ── User Avatar UI ───────────────────────────────────
+  const UserAvatar = () => (
+    <div className="relative" ref={dropdownRef}>
+      {/* Avatar button */}
+      <button
+        onClick={() => setDropdownOpen((prev) => !prev)}
+        className="flex items-center gap-2 group"
+      >
+        {/* Avatar image or fallback icon */}
+        {user?.avatar ? (
+          <img
+            src={user.avatar}
+            alt={user.name}
+            className="w-9 h-9 rounded-full object-cover border-2 border-primary/30
+              group-hover:border-primary transition-colors"
+          />
+        ) : (
+          <div
+            className="w-9 h-9 rounded-full bg-primary/10 border-2 border-primary/30
+            group-hover:border-primary transition-colors center-flex"
+          >
+            <Icons.User className="!w-4 !h-4 text-primary" />
+          </div>
+        )}
+
+        {/* Name + blood type badge */}
+        <div className="hidden xl:flex flex-col items-start leading-tight">
+          <span className="text-sm font-semibold text-dark">{user?.name}</span>
+          {user?.bloodType && (
+            <span className="text-xxs font-bold text-primary">
+              {user.bloodType}
+            </span>
+          )}
+        </div>
+
+        <Icons.ArrowForward
+          className={`!w-3.5 !h-3.5 text-gray-400 transition-transform duration-200
+            ${dropdownOpen ? "rotate-90" : "rotate-0"}`}
+        />
+      </button>
+
+      {/* Dropdown menu */}
+      {dropdownOpen && (
+        <div
+          className="absolute right-0 top-12 w-56 bg-white rounded-xs shadow-lg
+          border border-gray-100 z-50 overflow-hidden"
+        >
+          {/* User info header */}
+          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+            <p className="text-sm font-semibold text-dark truncate">
+              {user?.name}
+            </p>
+            <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+            {user?.location?.city && (
+              <p className="text-xs text-primary mt-0.5">
+                📍 {user.location.city}
+              </p>
+            )}
+          </div>
+
+          {/* Menu items */}
+          <div className="py-1">
+            <NavLink
+              to="/profile"
+              onClick={() => setDropdownOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-dark
+                hover:bg-gray-50 hover:text-primary transition-colors"
+            >
+              <Icons.User className="!w-4 !h-4" />
+              My Profile
+            </NavLink>
+
+            {isDonor && (
+              <NavLink
+                to="/my-donations"
+                onClick={() => setDropdownOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-dark
+                  hover:bg-gray-50 hover:text-primary transition-colors"
+              >
+                <Icons.Blood className="!w-4 !h-4" />
+                My Donations
+                {(user?.totalDonations ?? 0) > 0 && (
+                  <span
+                    className="ml-auto text-xxs font-bold bg-primary/10
+                    text-primary px-1.5 py-0.5 rounded-full"
+                  >
+                    {user?.totalDonations}
+                  </span>
+                )}
+              </NavLink>
+            )}
+
+            <NavLink
+              to="/settings"
+              onClick={() => setDropdownOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-dark
+                hover:bg-gray-50 hover:text-primary transition-colors"
+            >
+              <Icons.Setting className="!w-4 !h-4" />
+              Settings
+            </NavLink>
+          </div>
+
+          {/* Logout */}
+          <div className="border-t border-gray-100 py-1">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm
+                text-red-500 hover:bg-red-50 transition-colors"
+            >
+              <Icons.Close className="!w-4 !h-4" />
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <>
       {/* ───── Navbar ───── */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500
-        ${scrolled ? "bg-white shadow-md" : "bg-white/80 backdrop-blur-md"}`}
+          ${scrolled ? "bg-white shadow-md" : "bg-white/80 backdrop-blur-md"}`}
       >
         <MainContainer>
           <div className="flex items-center justify-between py-4">
-
-            {/* ─── Logo ─── */}
+            {/* Logo */}
             <NavLink
               to="/"
               className="flex items-center gap-2 font-bold text-lg hover:scale-105 transition"
             >
-              <Icons.Blood className="text-primary w-6 h-6" />
-              <span className="text-dark font-semibold">
+              <Icons.Blood className="!w-5 !h-5 text-primary" />
+              <span className="text-dark font-semibold font-serif">
                 Blood<span className="text-primary">Connect</span>
               </span>
             </NavLink>
 
-            {/* ─── Desktop Navigation ─── */}
+            {/* Desktop nav */}
             <nav className="hidden lg:flex items-center gap-6">
-              {navLinks.map((link) => (
+              {visibleNavLinks.map((link) => (
                 <NavLink
                   key={link.label}
                   to={link.href}
                   className={({ isActive }) =>
                     `text-sm font-medium transition-colors duration-200
-                    ${
-                      isActive
-                        ? "text-primary"
-                        : "text-dark hover:text-primary"
-                    }`
+                    ${isActive ? "text-primary" : "text-dark hover:text-primary"}`
                   }
                 >
                   {link.label}
@@ -61,80 +257,190 @@ const Navbar = ({ scrolled }: NavbarProps) => {
               ))}
             </nav>
 
-            {/* ─── Desktop Buttons ─── */}
+            {/* Desktop right side */}
             <div className="hidden lg:flex items-center gap-3">
-              <NavLink to="/login">
-                <Button variant="outline" size="sm">
-                  Login
-                </Button>
-              </NavLink>
-
+              {isAuthenticated && user ? (
+                !isMobile && <UserAvatar />
+              ) : (
+                <NavLink to="/login">
+                  <Button variant="outline" size="sm" radius="xs">
+                    Login
+                  </Button>
+                </NavLink>
+              )}
               <NavLink to="/request">
-                <Button variant="primary" size="sm">
+                <Button variant="primary" size="sm" radius="xs">
                   Request Blood
                 </Button>
               </NavLink>
             </div>
 
-            {/* ─── Mobile Menu Toggle ─── */}
-            <button
-              className="lg:hidden p-1"
-              onClick={() => setMenuOpen(!menuOpen)}
-              aria-label="Toggle menu"
-            >
-              {menuOpen ? <Icons.Close /> : <Icons.Menu />}
-            </button>
+            {/* Mobile right side */}
+            <div className="flex lg:hidden items-center gap-2">
+              {isAuthenticated && user ? (
+                isMobile && <UserAvatar />
+              ) : (
+                <NavLink to="/login">
+                  <Button variant="outline" size="xs" radius="xs">
+                    Login
+                  </Button>
+                </NavLink>
+              )}
 
+              <button
+                className="p-1 rounded-xs hover:bg-gray-100 transition-colors"
+                onClick={toggleMenu}
+                aria-label="Toggle menu"
+                aria-expanded={menuOpen}
+              >
+                <div className="relative w-6 h-6 center-flex">
+                  <span
+                    className={`absolute transition-all duration-300
+                    ${menuOpen ? "opacity-100 rotate-0" : "opacity-0 rotate-90"}`}
+                  >
+                    <Icons.Close className="!w-5 !h-5" />
+                  </span>
+                  <span
+                    className={`absolute transition-all duration-300
+                    ${menuOpen ? "opacity-0 -rotate-90" : "opacity-100 rotate-0"}`}
+                  >
+                    <Icons.Menu className="!w-5 !h-5" />
+                  </span>
+                </div>
+              </button>
+            </div>
           </div>
         </MainContainer>
       </header>
 
-      {/* ───── Mobile Menu ───── */}
-      {menuOpen && (
-        <div className="lg:hidden fixed inset-0 bg-white z-40 pt-24 px-6 flex flex-col gap-4">
+      {/* ───── Mobile Drawer ───── */}
+      {rendered && (
+        <>
+          <div
+            onClick={closeMenu}
+            className={`lg:hidden fixed inset-0 bg-black/40 z-40 transition-opacity
+              duration-300 ${visible ? "opacity-100" : "opacity-0"}`}
+          />
 
-          {navLinks.map((link) => (
-            <NavLink
-              key={link.label}
-              to={link.href}
-              onClick={() => setMenuOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 py-3 border-b text-base font-medium
-                ${
-                  isActive
-                    ? "text-primary"
-                    : "text-dark hover:text-primary"
-                }`
-              }
-            >
-              <Icons.ArrowForward className="w-4 h-4 text-primary" />
-              {link.label}
-            </NavLink>
-          ))}
-
-          <div className="mt-6 flex flex-col gap-3">
-            <NavLink to="/login">
-              <Button
-                variant="outline"
-                fullWidth
-                onClick={() => setMenuOpen(false)}
+          <div
+            className={`lg:hidden fixed top-0 right-0 bottom-0 w-[80vw] max-w-xs
+              bg-white z-50 flex flex-col shadow-2xl transition-transform
+              duration-300 ease-in-out
+              ${visible ? "translate-x-0" : "translate-x-full"}`}
+          >
+            {/* Drawer header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <NavLink
+                to="/"
+                onClick={closeMenu}
+                className="flex items-center gap-2"
               >
-                Login
-              </Button>
-            </NavLink>
-
-            <NavLink to="/request">
-              <Button
-                variant="primary"
-                fullWidth
-                onClick={() => setMenuOpen(false)}
+                <Icons.Blood className="!w-4 !h-4 text-primary" />
+                <span className="font-serif font-bold text-dark text-base">
+                  Blood<span className="text-primary">Connect</span>
+                </span>
+              </NavLink>
+              <button
+                onClick={closeMenu}
+                className="w-8 h-8 rounded-xs bg-gray-100 center-flex
+                  hover:bg-red-50 hover:text-primary transition-colors"
               >
-                Request Blood
-              </Button>
-            </NavLink>
+                <Icons.Close className="!w-4 !h-4" />
+              </button>
+            </div>
+
+            {/* Mobile user info (shown if logged in) */}
+            {isAuthenticated && user && (
+              <div
+                className="mx-4 mt-4 p-3 bg-primary/5 rounded-xs
+                flex items-center gap-3"
+              >
+                <div
+                  className="w-10 h-10 rounded-full bg-primary/10
+                  border-2 border-primary/20 center-flex shrink-0"
+                >
+                  {user.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={user.name}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <Icons.User className="!w-4 !h-4 text-primary" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-dark truncate">
+                    {user.name}
+                  </p>
+                  <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                </div>
+                {user.bloodType && (
+                  <span
+                    className="ml-auto text-xs font-black text-primary
+                    bg-primary/10 px-2 py-1 rounded-xs shrink-0"
+                  >
+                    {user.bloodType}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Nav links */}
+            <nav className="flex-1 overflow-y-auto px-4 py-4">
+              {visibleNavLinks.map((link, index) => (
+                <NavLink
+                  key={link.label}
+                  to={link.href}
+                  onClick={closeMenu}
+                  style={{
+                    transitionDelay: visible ? `${index * 40}ms` : "0ms",
+                  }}
+                  className={({ isActive }) =>
+                    `flex items-center justify-between px-3 py-3 rounded-xs mb-1
+                    text-sm font-medium transition-all duration-300
+                    ${visible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"}
+                    ${
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-dark hover:bg-gray-50 hover:text-primary"
+                    }`
+                  }
+                >
+                  <span>{link.label}</span>
+                  <Icons.ArrowForward className="!w-3.5 !h-3.5 text-primary/60" />
+                </NavLink>
+              ))}
+            </nav>
+
+            {/* Drawer CTA */}
+            <div className="px-4 pb-6 pt-3 border-t border-gray-100 flex flex-col gap-2.5">
+              {isAuthenticated && user ? (
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    closeMenu();
+                  }}
+                  className="w-full py-2.5 rounded-xs border border-red-200
+                    text-red-500 text-sm font-medium hover:bg-red-50 transition-colors"
+                >
+                  Logout
+                </button>
+              ) : (
+                <NavLink to="/login" onClick={closeMenu}>
+                  <Button variant="outline" size="md" radius="xs" fullWidth>
+                    Login
+                  </Button>
+                </NavLink>
+              )}
+              <NavLink to="/request" onClick={closeMenu}>
+                <Button variant="primary" size="md" radius="xs" fullWidth>
+                  Request Blood
+                </Button>
+              </NavLink>
+            </div>
           </div>
-
-        </div>
+        </>
       )}
     </>
   );
