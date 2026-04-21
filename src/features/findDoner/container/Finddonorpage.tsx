@@ -20,92 +20,108 @@ import {
   startFetch,
   startLoadMore,
 } from "../../../redux/slices/donorSlice";
+import BuildInLoader from "../../../shared/loader/BuildInLoader";
 
 const PAGE_LIMIT = 10;
 
 const FindDonorPage = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const authLoading = useSelector((state: RootState) => state.user.isLoading);
   const reduxUser = useSelector((state: RootState) => state.user.user);
   const donorsState = useSelector((state: RootState) => state.donors);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
-  const {
-    donors,
-    total,
-    page,
-    totalPages,
-    isFetching,
-    loadingMore,
-  } = donorsState;
+  const { donors, total, page, totalPages, isFetching, loadingMore } =
+    donorsState;
 
   const resolvedBloodType = useMemo(() => {
     if (filters.bloodType !== "All") return filters.bloodType;
-    return reduxUser?.bloodType ?? "";
-  }, [filters.bloodType, reduxUser?.bloodType]);
+    return "";
+  }, [filters.bloodType]);
+  console.log("[login user]: ", reduxUser)
 
   const coords = reduxUser?.location?.coordinates;
+
+  // const canSearch = Boolean(
+  //   (filters.bloodType === "All" || resolvedBloodType) &&
+  //   coords?.lat !== null && coords?.lat !== undefined &&
+  //   coords?.lng !== null && coords?.lng !== undefined
+  // );
   const canSearch = Boolean(
-    resolvedBloodType &&
-    coords?.lat !== null && coords?.lat !== undefined &&
-    coords?.lng !== null && coords?.lng !== undefined
+    !authLoading &&
+    (filters.bloodType === "All" || resolvedBloodType) &&
+    coords?.lat !== null &&
+    coords?.lat !== undefined &&
+    coords?.lng !== null &&
+    coords?.lng !== undefined,
   );
 
-  const fetchDonors = useCallback(async (pageToLoad: number, append: boolean) => {
-    if (!canSearch) {
-      dispatch(resetDonors());
-      return;
-    }
+  const fetchDonors = useCallback(
+    async (pageToLoad: number, append: boolean) => {
+      if (!canSearch) {
+        dispatch(resetDonors());
+        return;
+      }
 
-    if (append) dispatch(startLoadMore());
-    else dispatch(startFetch());
+      if (append) dispatch(startLoadMore());
+      else dispatch(startFetch());
 
-    try {
-      const response = await Api.get("/donors", {
-        params: {
-          bloodType: resolvedBloodType,
-          excludeUserId: reduxUser?._id,
-          lat: coords?.lat as number,
-          lng: coords?.lng as number,
-          radiusKm: filters.distance,
-          sortBy: filters.sortBy,
-          page: pageToLoad,
-          limit: PAGE_LIMIT,
-          ...(filters.availableOnly ? { availableOnly: true } : {}),
-          ...(filters.verifiedOnly ? { verifiedOnly: true } : {}),
-        },
-      });
+      try {
+        const response = await Api.get("/donors", {
+          params: {
+            // only send bloodType when a specific type is selected
+            ...(filters.bloodType !== "All" && resolvedBloodType
+              ? { bloodType: resolvedBloodType }
+              : {}),
+            excludeUserId: reduxUser?._id,
+            lat: coords?.lat as number,
+            lng: coords?.lng as number,
+            radiusKm: filters.distance,
+            sortBy: filters.sortBy,
+            page: pageToLoad,
+            limit: PAGE_LIMIT,
+            ...(filters.availableOnly ? { availableOnly: true } : {}),
+            ...(filters.verifiedOnly ? { verifiedOnly: true } : {}),
+          },
+        });
 
-      const payload = response.data?.data;
-      const apiDonors = payload?.donors ?? [];
-      const mappedDonors = apiDonors.map(mapApiDonorToDonor);
-      console.log("[res]: ", response, "[payload]: ", payload, "[donor]", mappedDonors);
-      const pagination = payload?.pagination;
-      const totalCount = pagination?.total ?? mappedDonors.length;
-      const totalPagesCount = pagination?.totalPages
-        ?? Math.max(1, Math.ceil(totalCount / PAGE_LIMIT));
+        const payload = response.data?.data;
+        const apiDonors = payload?.donors ?? [];
+        const mappedDonors = apiDonors.map(mapApiDonorToDonor);
+        const pagination = payload?.pagination;
+        const totalCount = pagination?.total ?? mappedDonors.length;
+        const totalPagesCount =
+          pagination?.totalPages ??
+          Math.max(1, Math.ceil(totalCount / PAGE_LIMIT));
 
-      dispatch(setResults({
-        donors: mappedDonors,
-        total: totalCount,
-        page: pagination?.page ?? pageToLoad,
-        totalPages: totalPagesCount,
-        append,
-      }));
-    } catch {
-      dispatch(setError("Failed to fetch donors"));
-      if (!append) dispatch(clearDonors());
-    }
-  }, [
-    canSearch,
-    coords?.lat,
-    coords?.lng,
-    dispatch,
-    filters.availableOnly,
-    filters.distance,
-    filters.sortBy,
-    filters.verifiedOnly,
-    resolvedBloodType,
-  ]);
+        dispatch(
+          setResults({
+            donors: mappedDonors,
+            total: totalCount,
+            page: pagination?.page ?? pageToLoad,
+            totalPages: totalPagesCount,
+            append,
+          }),
+        );
+      } catch {
+        dispatch(setError("Failed to fetch donors"));
+        if (!append) dispatch(clearDonors());
+      }
+    },
+    [
+      canSearch,
+      coords?.lat,
+      coords?.lng,
+      dispatch,
+      filters.availableOnly,
+      filters.bloodType,
+      filters.distance,
+      filters.sortBy,
+      filters.verifiedOnly,
+      resolvedBloodType,
+      reduxUser?._id,
+    ],
+  );
 
   // ── Helpers ──────────────────────────────────────────
   const updateFilters = (updated: Partial<FilterState>) => {
@@ -128,10 +144,11 @@ const FindDonorPage = () => {
   useEffect(() => {
     fetchDonors(1, false);
   }, [fetchDonors]);
-
+  if (authLoading){
+    return <BuildInLoader/>
+  }
   return (
     <div className="min-h-screen bg-light">
-
       {/* Hero banner */}
       <FindDonorHero donorCount={total} />
 
@@ -141,14 +158,13 @@ const FindDonorPage = () => {
         location={filters.location}
         distance={filters.distance}
         onBloodTypeChange={(val) => updateFilters({ bloodType: val })}
-        onLocationChange={(val)  => updateFilters({ location: val  })}
-        onDistanceChange={(val)  => updateFilters({ distance: val  })}
+        onLocationChange={(val) => updateFilters({ location: val })}
+        onDistanceChange={(val) => updateFilters({ distance: val })}
       />
 
       {/* Main content */}
       <MainContainer>
         <div className="flex flex-col lg:flex-row gap-6 pb-16">
-
           {/* Sidebar filters */}
           <DonorFilterSidebar
             filters={filters}
@@ -172,7 +188,6 @@ const FindDonorPage = () => {
               isFetching={isFetching}
             />
           </div>
-
         </div>
       </MainContainer>
     </div>
