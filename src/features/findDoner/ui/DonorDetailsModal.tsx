@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import type { Donor } from "../service/Donordata";
 import { Icons } from "../../../shared/icons/Icons";
 import Api from "../../../utilities/api";
+import CustomButton from "../../../shared/button/CustomButton";
+import toast from "react-hot-toast";
+import { useSelector } from "react-redux";
+import type { RootState } from "../../../redux/store";
 
 interface DonorDetailsModalProps {
   donor: Donor;
@@ -11,6 +15,7 @@ interface DonorDetailsModalProps {
 
 interface DonorProfile {
   _id: string;
+  id:string,
   name: string;
   email?: string;
   phone?: string;
@@ -37,6 +42,8 @@ const DonorDetailsModal = ({ donor, isOpen, onClose }: DonorDetailsModalProps) =
   const [error, setError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [requestLoading, setRequestLoading] = useState(false);
+  const authUser = useSelector((state: RootState) => state.user.user);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -91,6 +98,42 @@ const DonorDetailsModal = ({ donor, isOpen, onClose }: DonorDetailsModalProps) =
   }, [isOpen]);
 
   if (!isMounted) return null;
+
+  const donorId = donor.id;
+  const bloodType = profile?.bloodType ?? donor.bloodType;
+  const collectionId = authUser?.id || authUser?._id;
+
+  const handleRequestBlood = async () => {
+    console.log(authUser)
+    if (!donorId) {
+      toast.error("Missing donor information");
+      return;
+    }
+    if (!collectionId) {
+      toast.error("Please login to request blood");
+      return;
+    }
+    if (!bloodType) {
+      toast.error("Missing blood group");
+      return;
+    }
+
+    setRequestLoading(true);
+    try {
+      const res = await Api.post("/donations/request", {
+        donorId,
+        bloodType,
+        collectionId,
+      });
+      toast.success(res?.data?.message ?? "Blood request sent");
+      onClose();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error?.response?.data?.message ?? "Failed to send blood request");
+    } finally {
+      setRequestLoading(false);
+    }
+  };
 
   return (
     <div
@@ -271,6 +314,20 @@ const DonorDetailsModal = ({ donor, isOpen, onClose }: DonorDetailsModalProps) =
               </div>
             </div>
           )}
+        </div>
+
+        <div className="mt-5 flex justify-end">
+          <CustomButton
+            variant="primary"
+            size="sm"
+            radius="lg"
+            leftIcon={<Icons.Blood className="!w-4 !h-4" />}
+            onClick={handleRequestBlood}
+            loading={requestLoading}
+            disabled={!donor.isAvailable || !authUser}
+          >
+            Request for Blood
+          </CustomButton>
         </div>
       </div>
     </div>

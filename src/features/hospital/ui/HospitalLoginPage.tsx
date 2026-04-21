@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useDispatch } from "react-redux";
-import { loginApi } from "../../login/service/loginService";
-import { setUser } from "../../../redux/slices/userSlice";
+import { hospitalLoginApi } from "../service/hospitalAuthService";
+import { setHospital } from "../../../redux/slices/hospitalSlice";
 import { useLocation } from "../../../hooks/useLocation";
 
 export default function HospitalLoginPage() {
@@ -18,7 +18,7 @@ export default function HospitalLoginPage() {
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!identifier.trim()) errs.identifier = "Email or phone is required";
+    if (!identifier.trim()) errs.identifier = "Email is required";
     if (!password) errs.password = "Password is required";
     return errs;
   };
@@ -45,37 +45,23 @@ export default function HospitalLoginPage() {
 
     try {
       const locationData = await getLocation();
-      const res = await loginApi({
-        identifier,
+      const res = await hospitalLoginApi({
+        email: identifier,
         password,
-        location: {
-          city:
-            locationData?.details?.city ||
-            locationData?.details?.town ||
-            locationData?.details?.village ||
-            locationData?.details?.quarter ||
-            "",
-          country: locationData?.details?.country || "",
-          country_code: locationData?.details?.country_code || "",
-          county: locationData?.details?.county || "",
-          postcode: locationData?.details?.postcode || "",
-          state: locationData?.details?.state || "",
-          state_district: locationData?.details?.state_district || "",
-          coordinates: {
-            lat: locationData?.latitude,
-            lng: locationData?.longitude,
-          },
-        },
       });
 
-      const user = res.data?.user;
-      if (!user || user.role !== "hospital") {
+      if (!res.hospital) {
         toast.error("Hospital account required for this portal");
         return;
       }
 
-      dispatch(setUser({ user, token: res.data?.accessToken }));
-      toast.success(res?.message || "Login successful");
+      dispatch(setHospital({ hospital: res.hospital, token: res.accessToken }));
+      const city =
+        locationData?.details?.city ||
+        locationData?.details?.town ||
+        locationData?.details?.village ||
+        locationData?.details?.quarter;
+      toast.success(city ? `Login successful (${city})` : "Login successful");
       navigate("/hospital");
     } catch (err: unknown) {
       const error = err as {
@@ -131,7 +117,7 @@ export default function HospitalLoginPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Email or phone
+                Email
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <input

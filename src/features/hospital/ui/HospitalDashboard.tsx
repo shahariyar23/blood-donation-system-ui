@@ -1,18 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Icons } from "../../../shared/icons/Icons";
 import HospitalDonationModal from "./HospitalDonationModal";
 import {
+  formatPatientInfo,
   statusStyles,
   mapDonation,
-  mapHospitalDonor,
   type DonationStatus,
   type HospitalDonation,
-  type HospitalDonor,
 } from "../service/hospitalData";
 import {
   approveHospitalDonation,
   fetchHospitalDonations,
-  fetchHospitalDonors,
   rejectHospitalDonation,
 } from "../service/hospitalService";
 
@@ -29,30 +27,37 @@ const HospitalDashboard = () => {
   const [activeDonation, setActiveDonation] = useState<HospitalDonation | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [submittedSearch, setSubmittedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [limit] = useState(10);
-  const [donors, setDonors] = useState<HospitalDonor[]>([]);
-  const [donorLoading, setDonorLoading] = useState(false);
-  const [donorError, setDonorError] = useState<string | null>(null);
-  const [donorPage, setDonorPage] = useState(1);
-  const [donorTotalPages, setDonorTotalPages] = useState(1);
-  const [donorQuery, setDonorQuery] = useState("");
-  const [donorSearch, setDonorSearch] = useState("");
-  const [donorLimit] = useState(8);
+  const [summaryCounts, setSummaryCounts] = useState({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+  });
 
-  const counts = useMemo(() => {
-    return {
-      total: donations.length,
-      pending: donations.filter((d) => d.status === "pending").length,
-      approved: donations.filter((d) => d.status === "approved").length,
-      rejected: donations.filter((d) => d.status === "rejected").length,
-    };
-  }, [donations]);
+  const loadSummaryCounts = async () => {
+    try {
+      const [allRes, pendingRes, approvedRes, rejectedRes] = await Promise.all([
+        fetchHospitalDonations({ page: 1, limit: 1 }),
+        fetchHospitalDonations({ status: "pending", page: 1, limit: 1 }),
+        fetchHospitalDonations({ status: "approved", page: 1, limit: 1 }),
+        fetchHospitalDonations({ status: "rejected", page: 1, limit: 1 }),
+      ]);
 
-  const filtered = useMemo(() => {
-    return donations;
-  }, [donations]);
+      setSummaryCounts({
+        total: allRes.pagination.total,
+        pending: pendingRes.pagination.total,
+        approved: approvedRes.pagination.total,
+        rejected: rejectedRes.pagination.total,
+      });
+    } catch {
+      // Ignore summary failure; page-level error is already handled by donation list loading.
+    }
+  };
 
   const loadDonations = async () => {
     setLoading(true);
@@ -62,6 +67,7 @@ const HospitalDashboard = () => {
         status: activeTab === "all" ? undefined : activeTab,
         page,
         limit,
+        search: submittedSearch.trim() || undefined,
       });
       setDonations(response.donations.map(mapDonation));
       setTotalPages(response.pagination.totalPages);
@@ -74,36 +80,34 @@ const HospitalDashboard = () => {
 
   useEffect(() => {
     void loadDonations();
-  }, [activeTab, page]);
+  }, [activeTab, page, submittedSearch]);
+
+  useEffect(() => {
+    void loadSummaryCounts();
+  }, []);
 
   useEffect(() => {
     setPage(1);
   }, [activeTab]);
 
-  const loadDonors = async () => {
-    setDonorLoading(true);
-    setDonorError(null);
-    try {
-      const response = await fetchHospitalDonors({
-        search: donorSearch || undefined,
-        page: donorPage,
-        limit: donorLimit,
-      });
-      setDonors(response.users.map(mapHospitalDonor));
-      setDonorTotalPages(response.pagination.totalPages);
-    } catch {
-      setDonorError("Failed to load donors");
-    } finally {
-      setDonorLoading(false);
-    }
+  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setPage(1);
+    setSubmittedSearch(searchQuery.trim());
   };
 
-  useEffect(() => {
-    void loadDonors();
-  }, [donorSearch, donorPage]);
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setSubmittedSearch("");
+    setPage(1);
+  };
 
   const handleApprove = async (id: string) => {
     try {
+      const previousStatus =
+        activeDonation?.id === id
+          ? activeDonation.status
+          : donations.find((item) => item.id === id)?.status;
       const updated = await approveHospitalDonation(id);
       setDonations((prev) =>
         prev.map((item) =>
@@ -117,6 +121,15 @@ const HospitalDashboard = () => {
           ? { ...prev, status: updated.status, approvedAt: updated.approvedAt }
           : prev
       );
+
+      if (previousStatus && previousStatus !== "approved") {
+        setSummaryCounts((prev) => ({
+          ...prev,
+          pending: previousStatus === "pending" ? Math.max(0, prev.pending - 1) : prev.pending,
+          rejected: previousStatus === "rejected" ? Math.max(0, prev.rejected - 1) : prev.rejected,
+          approved: prev.approved + 1,
+        }));
+      }
     } catch {
       setError("Failed to approve donation");
     }
@@ -124,6 +137,10 @@ const HospitalDashboard = () => {
 
   const handleReject = async (id: string, note: string) => {
     try {
+      const previousStatus =
+        activeDonation?.id === id
+          ? activeDonation.status
+          : donations.find((item) => item.id === id)?.status;
       const updated = await rejectHospitalDonation(id, note);
       setDonations((prev) =>
         prev.map((item) =>
@@ -147,6 +164,15 @@ const HospitalDashboard = () => {
             }
           : prev
       );
+
+      if (previousStatus && previousStatus !== "rejected") {
+        setSummaryCounts((prev) => ({
+          ...prev,
+          pending: previousStatus === "pending" ? Math.max(0, prev.pending - 1) : prev.pending,
+          approved: previousStatus === "approved" ? Math.max(0, prev.approved - 1) : prev.approved,
+          rejected: prev.rejected + 1,
+        }));
+      }
     } catch {
       setError("Failed to reject donation");
     }
@@ -154,40 +180,54 @@ const HospitalDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[3px] text-gray-400">
-            Hospital Portal
-          </p>
-          <h1 className="text-2xl font-semibold text-gray-900">
-            Donation approvals
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Shift</span>
-          <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+      <div className="rounded-sm border border-red-100 bg-[linear-gradient(120deg,#fff1f2_0%,#ffffff_55%,#eef2ff_100%)] p-6 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[3px] text-red-500 font-semibold">
+              Hospital Portal
+            </p>
+            <h1 className="text-3xl font-serif font-bold text-slate-900 mt-2">
+              Donation Command Center
+            </h1>
+            <p className="text-sm text-slate-600 mt-2 max-w-2xl">
+              Manage donation requests, verify donor eligibility, and approve or reject
+              hospital donation records from one focused workspace.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700">
             <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
-            Active
+            Shift Active
           </div>
         </div>
       </div>
 
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[3px] text-gray-400">
+            Dashboard
+          </p>
+          <h2 className="text-2xl font-semibold text-gray-900">
+            Donation approvals
+          </h2>
+        </div>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+        <div className="rounded-sm border border-slate-100 bg-white p-4 shadow-sm">
           <p className="text-xs text-gray-400">Total requests</p>
-          <p className="text-2xl font-semibold text-gray-900 mt-2">{counts.total}</p>
+          <p className="text-2xl font-semibold text-gray-900 mt-2">{summaryCounts.total}</p>
         </div>
-        <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-4 shadow-sm">
+        <div className="rounded-sm border border-amber-100 bg-amber-50/60 p-4 shadow-sm">
           <p className="text-xs text-amber-600">Pending</p>
-          <p className="text-2xl font-semibold text-gray-900 mt-2">{counts.pending}</p>
+          <p className="text-2xl font-semibold text-gray-900 mt-2">{summaryCounts.pending}</p>
         </div>
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 shadow-sm">
+        <div className="rounded-sm border border-emerald-100 bg-emerald-50/60 p-4 shadow-sm">
           <p className="text-xs text-emerald-600">Approved</p>
-          <p className="text-2xl font-semibold text-gray-900 mt-2">{counts.approved}</p>
+          <p className="text-2xl font-semibold text-gray-900 mt-2">{summaryCounts.approved}</p>
         </div>
-        <div className="rounded-xl border border-rose-100 bg-rose-50/60 p-4 shadow-sm">
+        <div className="rounded-sm border border-rose-100 bg-rose-50/60 p-4 shadow-sm">
           <p className="text-xs text-rose-600">Rejected</p>
-          <p className="text-2xl font-semibold text-gray-900 mt-2">{counts.rejected}</p>
+          <p className="text-2xl font-semibold text-gray-900 mt-2">{summaryCounts.rejected}</p>
         </div>
       </div>
 
@@ -208,120 +248,47 @@ const HospitalDashboard = () => {
         ))}
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="rounded-sm border border-gray-100 bg-white p-4 shadow-sm">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+        >
           <div>
             <p className="text-xs uppercase tracking-[2px] text-gray-400">
-              Donor Directory
+              Search requests
             </p>
             <p className="text-sm text-gray-600">
-              Search donors by email or phone
+              Search by donation ID
             </p>
           </div>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              setDonorPage(1);
-              setDonorSearch(donorQuery.trim());
-            }}
-            className="flex w-full sm:w-auto gap-2"
-          >
+
+          <div className="flex w-full items-center gap-2 sm:max-w-md">
             <div className="relative flex-1">
               <Icons.Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
-                value={donorQuery}
-                onChange={(e) => setDonorQuery(e.target.value)}
-                placeholder="Search by email or phone"
-                className="w-full sm:w-72 rounded-full border border-gray-200 bg-white pl-9 pr-4 py-2 text-sm
-                  text-gray-700 focus:border-red-400 focus:outline-none"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Enter donation id"
+                className="w-full rounded-full border border-gray-200 bg-white pl-9 pr-4 py-2 text-sm text-gray-700 focus:border-red-400 focus:outline-none"
               />
             </div>
             <button
               type="submit"
-              className="rounded-full bg-gray-900 text-white px-4 py-2 text-xs font-semibold"
+              className="rounded-full bg-gray-900 px-4 py-2 text-xs font-semibold text-white"
             >
               Search
             </button>
-            {donorSearch && (
+            {(searchQuery || submittedSearch) && (
               <button
                 type="button"
-                onClick={() => {
-                  setDonorQuery("");
-                  setDonorSearch("");
-                  setDonorPage(1);
-                }}
+                onClick={handleClearSearch}
                 className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600"
               >
                 Clear
               </button>
             )}
-          </form>
-        </div>
-
-        {donorError && (
-          <div className="mt-4 rounded-lg border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600">
-            {donorError}
           </div>
-        )}
-
-        <div className="mt-4 border border-gray-100 rounded-xl overflow-hidden">
-          <div className="grid grid-cols-12 gap-3 px-4 py-3 text-xs uppercase tracking-[2px] text-gray-400 border-b border-gray-100">
-            <div className="col-span-3">Name</div>
-            <div className="col-span-3">Email</div>
-            <div className="col-span-2">Phone</div>
-            <div className="col-span-2">Blood</div>
-            <div className="col-span-2">City</div>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {donorLoading ? (
-              <div className="px-4 py-6 text-sm text-gray-400">Loading donors...</div>
-            ) : donors.length === 0 ? (
-              <div className="px-4 py-6 text-sm text-gray-400">No donors found.</div>
-            ) : (
-              donors.map((donor) => (
-                <div key={donor.id} className="grid grid-cols-12 gap-3 px-4 py-3 text-sm text-gray-600">
-                  <div className="col-span-3 font-semibold text-gray-900">
-                    {donor.name}
-                  </div>
-                  <div className="col-span-3 break-all">
-                    {donor.email}
-                  </div>
-                  <div className="col-span-2">
-                    {donor.phone}
-                  </div>
-                  <div className="col-span-2">
-                    {donor.bloodType}
-                  </div>
-                  <div className="col-span-2">
-                    {donor.city}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-          <span>Page {donorPage} of {donorTotalPages}</span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setDonorPage((prev) => Math.max(1, prev - 1))}
-              disabled={donorPage <= 1 || donorLoading}
-              className="px-3 py-1 rounded-md border border-gray-200 disabled:opacity-50"
-            >
-              Prev
-            </button>
-            <button
-              type="button"
-              onClick={() => setDonorPage((prev) => Math.min(donorTotalPages, prev + 1))}
-              disabled={donorPage >= donorTotalPages || donorLoading}
-              className="px-3 py-1 rounded-md border border-gray-200 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+        </form>
       </div>
 
       {error && (
@@ -330,73 +297,97 @@ const HospitalDashboard = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="grid grid-cols-12 gap-3 px-5 py-3 text-xs uppercase tracking-[2px] text-gray-400 border-b border-gray-100">
-          <div className="col-span-4">Donor</div>
-          <div className="col-span-2">Blood</div>
-          <div className="col-span-2">Units</div>
-          <div className="col-span-2">Date</div>
-          <div className="col-span-2">Status</div>
-        </div>
-        <div className="divide-y divide-gray-100">
-          {loading ? (
-            <div className="px-5 py-8 text-sm text-gray-400">Loading donations...</div>
-          ) : filtered.length === 0 ? (
-            <div className="px-5 py-8 text-sm text-gray-400">No donations found.</div>
-          ) : (
-            filtered.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setActiveDonation(item)}
-                className="grid grid-cols-12 gap-3 px-5 py-4 text-left hover:bg-slate-50 transition"
-              >
-                <div className="col-span-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 font-semibold flex items-center justify-center">
-                    {item.bloodType}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">
-                      Donor #{item.donorId.slice(-6)}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {item.patientInfo || "Patient info pending"}
-                    </p>
-                  </div>
-                </div>
-                <div className="col-span-2 flex items-center gap-2 text-sm text-gray-600">
-                  <Icons.Blood className="w-3 h-3 text-red-500" />
-                  {item.bloodType}
-                </div>
-                <div className="col-span-2 text-sm text-gray-600">
-                  {item.units} unit(s)
-                </div>
-                <div className="col-span-2 text-sm text-gray-600">
-                  {item.createdAt
-                    ? new Date(item.createdAt).toLocaleDateString("en-US")
-                    : "-"}
-                </div>
-                <div className="col-span-2">
-                  <span
-                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
-                      statusStyles[item.status]
-                    }`}
+      <div className="bg-white rounded-sm border border-gray-100 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full table-fixed border-collapse">
+            <colgroup>
+              <col style={{ width: "36%" }} />
+              <col style={{ width: "18%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "16%" }} />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-gray-100 text-xs uppercase tracking-[2px] text-gray-400">
+                <th className="px-5 py-3 text-left font-medium">Donor</th>
+                <th className="px-5 py-3 text-left font-medium">Blood</th>
+                <th className="px-5 py-3 text-left font-medium">Units</th>
+                <th className="px-5 py-3 text-left font-medium">Date</th>
+                <th className="px-5 py-3 text-left font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr>
+                  <td className="px-5 py-8 text-sm text-gray-400" colSpan={5}>
+                    Loading donations...
+                  </td>
+                </tr>
+              ) : donations.length === 0 ? (
+                <tr>
+                  <td className="px-5 py-8 text-sm text-gray-400" colSpan={5}>
+                        No donations found.
+                  </td>
+                </tr>
+              ) : (
+                    donations.map((item) => (
+                  <tr
+                    key={item.id}
+                    onClick={() => setActiveDonation(item)}
+                    className="cursor-pointer hover:bg-slate-50 transition"
                   >
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        item.status === "pending"
-                          ? "bg-amber-500"
-                          : item.status === "approved"
-                          ? "bg-emerald-500"
-                          : "bg-rose-500"
-                      }`}
-                    />
-                    {item.status}
-                  </span>
-                </div>
-              </button>
-            ))
-          )}
+                    <td className="px-5 py-4 align-middle">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 shrink-0 rounded-full bg-red-50 text-red-600 font-semibold flex items-center justify-center">
+                          {item.bloodType}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">
+                            Donor #{item.donorId.slice(-6)}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {formatPatientInfo(item.patientInfo)}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 align-middle text-sm text-gray-600">
+                      <div className="flex items-center gap-2">
+                        <Icons.Blood className="w-3 h-3 text-red-500 shrink-0" />
+                        <span>{item.bloodType}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 align-middle text-sm text-gray-600 whitespace-nowrap">
+                      {item.units} unit(s)
+                    </td>
+                    <td className="px-5 py-4 align-middle text-sm text-gray-600 whitespace-nowrap">
+                      {item.createdAt
+                        ? new Date(item.createdAt).toLocaleDateString("en-US")
+                        : "-"}
+                    </td>
+                    <td className="px-5 py-4 align-middle">
+                      <span
+                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
+                          statusStyles[item.status]
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            item.status === "pending"
+                              ? "bg-amber-500"
+                              : item.status === "approved"
+                              ? "bg-emerald-500"
+                              : "bg-rose-500"
+                          }`}
+                        />
+                        {item.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -419,6 +410,15 @@ const HospitalDashboard = () => {
           >
             Next
           </button>
+          {submittedSearch && (
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              className="px-3 py-1 rounded-md border border-gray-200"
+            >
+              Clear search
+            </button>
+          )}
         </div>
       </div>
 

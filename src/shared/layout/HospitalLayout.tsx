@@ -1,11 +1,31 @@
-import { NavLink, Outlet } from "react-router-dom";
+import toast from "react-hot-toast";
+import { useDispatch } from "react-redux";
+import { useNavigate, NavLink, Outlet } from "react-router-dom";
+import { clearHospital } from "../../redux/slices/hospitalSlice";
+import { hospitalLogoutApi } from "../../features/hospital/service/hospitalAuthService";
 import { Icons } from "../icons/Icons";
 
 const navItems = [
-  { label: "Dashboard", to: "/hospital" },
+  { label: "Dashboard", to: "/hospital", icon: Icons.Dashboard, end: true },
+  { label: "Donor Selection", to: "/hospital/donors", icon: Icons.Search },
 ];
 
 const HospitalLayout = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      const result = await hospitalLogoutApi();
+      toast.success(result.message || "Logged out successfully");
+    } catch {
+      toast.error("Session ended. Signing out locally.");
+    } finally {
+      dispatch(clearHospital());
+      navigate("/hospital/login", { replace: true });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="flex">
@@ -29,6 +49,7 @@ const HospitalLayout = () => {
               <NavLink
                 key={item.to}
                 to={item.to}
+                end={item.end}
                 className={({ isActive }) =>
                   [
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition",
@@ -40,14 +61,24 @@ const HospitalLayout = () => {
                     .join(" ")
                 }
               >
-                <Icons.Dashboard className="w-4 h-4" />
+                <item.icon className="w-4 h-4" />
                 {item.label}
               </NavLink>
             ))}
           </nav>
 
-          <div className="mt-auto p-6 text-xs text-gray-400">
-            BloodConnect Hospital Portal
+          <div className="mt-auto p-4 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => void handleLogout()}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 transition hover:bg-slate-50 hover:text-rose-700"
+            >
+              <Icons.Close className="w-4 h-4 text-rose-500" />
+              Logout
+            </button>
+            <div className="px-3 pt-4 text-xs text-gray-400">
+              BloodConnect Hospital Portal
+            </div>
           </div>
         </aside>
 

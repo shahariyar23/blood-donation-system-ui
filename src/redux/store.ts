@@ -14,22 +14,36 @@ import {
 
 import userReducer from "./slices/userSlice";
 import donorReducer from "./slices/donorSlice";
+import hospitalReducer from "./slices/hospitalSlice";
 
 //  Persist config
 const persistConfig = {
   key: "user",
   version: 1,
   storage,
-  blacklist: ["token"],
+  blacklist: ["token", "isLoading"],
 };
 
 //  Wrap reducer
 const persistedReducer = persistReducer(persistConfig, userReducer);
 
+const hospitalPersistConfig = {
+  key: "hospital",
+  version: 1,
+  storage,
+  blacklist: ["token", "isLoading"],
+};
+
+const persistedHospitalReducer = persistReducer(
+  hospitalPersistConfig,
+  hospitalReducer
+);
+
 // 🔥 Store
 export const store = configureStore({
   reducer: {
-    user: persistedReducer, 
+    user: persistedReducer,
+    hospital: persistedHospitalReducer,
     donors: donorReducer,
   },
 

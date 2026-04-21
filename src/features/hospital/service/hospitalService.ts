@@ -3,19 +3,14 @@ import type {
   DonationStatus,
   HospitalDonationApi,
   HospitalDonationListResponse,
-  HospitalDonorListResponse,
+  HospitalDonationRequestSearchData,
 } from "./hospitalData";
 
 interface HospitalDonationListParams {
   status?: DonationStatus;
   page?: number;
   limit?: number;
-}
-
-interface HospitalDonorListParams {
   search?: string;
-  page?: number;
-  limit?: number;
 }
 
 interface ApiEnvelope<T> {
@@ -36,46 +31,93 @@ export const fetchHospitalDonations = async (
 };
 
 export const approveHospitalDonation = async (id: string) => {
-  const res = await Api.patch<ApiEnvelope<HospitalDonationApi>>(
-    `/hospital/donations/${id}/approve`
+  const res = await Api.patch<
+    ApiEnvelope<{
+      donor?: {
+        status?: DonationStatus;
+        approvalDate?: string | null;
+      };
+    }>
+  >(
+    `/hospital/donations/${id}/approve`,
+    {
+      remarks: "Approved from hospital dashboard",
+    }
   );
-  return res.data.data;
+
+  return {
+    _id: id,
+    donorId: id,
+    hospitalId: "",
+    status: res.data.data?.donor?.status ?? "approved",
+    approvedAt: res.data.data?.donor?.approvalDate ?? new Date().toISOString(),
+    bloodType: "",
+    units: 0,
+  } as HospitalDonationApi;
 };
 
 export const rejectHospitalDonation = async (id: string, reportNote: string) => {
-  const res = await Api.patch<ApiEnvelope<HospitalDonationApi>>(
+  const res = await Api.patch<
+    ApiEnvelope<{
+      donor?: {
+        status?: DonationStatus;
+      };
+    }>
+  >(
     `/hospital/donations/${id}/reject`,
-    { reportNote }
+    {
+      reason: reportNote || "Rejected by hospital",
+      remarks: reportNote || undefined,
+    }
   );
-  return res.data.data;
+
+  return {
+    _id: id,
+    donorId: id,
+    hospitalId: "",
+    status: res.data.data?.donor?.status ?? "rejected",
+    reportNote: reportNote || "Rejected by hospital",
+    bloodType: "",
+    units: 0,
+  } as HospitalDonationApi;
 };
 
 export interface HospitalCreateDonationPayload {
   donorId: string;
+  requesterId: string;
   bloodType: string;
   units: number;
-  patientInfo?: string;
+  patientInfo?: {
+    name: string;
+    address: string;
+    phone: string;
+    reasonForBlood: string;
+  };
   notes?: string;
 }
 
 export const createHospitalDonation = async (
   payload: HospitalCreateDonationPayload
 ) => {
-  const res = await Api.post<ApiEnvelope<HospitalDonationApi>>(
-    "/hospital/donations",
-    payload
-  );
-  return res.data.data;
+  const res = await Api.post("/hospital/donations", {
+    donorId: payload.donorId,
+    requesterId: payload.requesterId,
+    bloodType: payload.bloodType,
+    units: payload.units,
+    patientInfo: payload.patientInfo,
+    notes: payload.notes,
+  });
+  return res.data?.data;
 };
 
-export const fetchHospitalDonors = async (
-  params: HospitalDonorListParams
-): Promise<HospitalDonorListResponse> => {
-  const res = await Api.get<ApiEnvelope<HospitalDonorListResponse>>("/users", {
-    params: {
-      role: "donor",
-      ...params,
-    },
-  });
+export const fetchHospitalDonorByIdentifier = async (
+  identifier: string
+): Promise<HospitalDonationRequestSearchData> => {
+  const res = await Api.post<ApiEnvelope<HospitalDonationRequestSearchData>>(
+    "/hospital/donations/search-request",
+    {
+      identifier,
+    }
+  );
   return res.data.data;
 };

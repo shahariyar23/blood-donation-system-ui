@@ -1,5 +1,17 @@
 export type DonationStatus = "pending" | "approved" | "rejected";
 
+export interface HospitalPatientInfo {
+  name?: string;
+  address?: string;
+  phone?: string;
+  age?: number | null;
+  gender?: string;
+  reasonForBlood?: string;
+  medicalCondition?: string;
+  doctorName?: string;
+  doctorPhone?: string;
+}
+
 export interface HospitalDonationApi {
   _id: string;
   donorId: string;
@@ -10,7 +22,7 @@ export interface HospitalDonationApi {
   donatedAt?: string | null;
   bloodType: string;
   units: number;
-  patientInfo?: string | null;
+  patientInfo?: HospitalPatientInfo | string | null;
   notes?: string | null;
   reportNote?: string | null;
   createdAt?: string;
@@ -27,7 +39,7 @@ export interface HospitalDonation {
   donatedAt?: string | null;
   bloodType: string;
   units: number;
-  patientInfo?: string | null;
+  patientInfo?: HospitalPatientInfo | string | null;
   notes?: string | null;
   reportNote?: string | null;
   createdAt?: string;
@@ -45,12 +57,19 @@ export interface HospitalDonationListResponse {
 }
 
 export interface HospitalDonorApi {
-  _id: string;
+  id: string;
   name: string;
   email: string;
   phone: string;
+  avatar?: string | null;
+  gender?: string | null;
   bloodType?: string;
-  role?: string;
+  isDonorVerified?: boolean;
+  isAvailable?: boolean;
+  totalDonations?: number;
+  lastDonationDate?: string | null;
+  nextAvailableAt?: string | null;
+  primarySocialLink?: string | null;
   location?: {
     city?: string;
     displayName?: string;
@@ -62,18 +81,63 @@ export interface HospitalDonor {
   name: string;
   email: string;
   phone: string;
+  gender: string;
   bloodType: string;
   city: string;
+  isDonorVerified: boolean;
+  isAvailable: boolean;
+  totalDonations: number;
+  lastDonationDate: string | null;
+  nextAvailableAt: string | null;
+  primarySocialLink: string | null;
 }
 
-export interface HospitalDonorListResponse {
-  users: HospitalDonorApi[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
+export interface HospitalDonorSearchResponse {
+  donor: HospitalDonorApi | null;
+}
+
+export interface DonationRequestPatientInfo {
+  name: string;
+  address: string;
+  phone: string;
+  age: number | null;
+  gender: string;
+  reasonForBlood: string;
+  medicalCondition?: string;
+  doctorName?: string;
+  doctorPhone?: string;
+}
+
+export interface DonationRequestRequestedBy {
+  _id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+}
+
+export interface HospitalDonationRequestApi {
+  _id: string;
+  status: string;
+  bloodType: string;
+  units: number;
+  patientInfo?: DonationRequestPatientInfo;
+  requestedBy?: DonationRequestRequestedBy;
+  notes?: string;
+  createdAt?: string;
+}
+
+export interface HospitalDonationRequestSearchData {
+  request: HospitalDonationRequestApi;
+  matchedUser?: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    role: string;
   };
+  donor: HospitalDonorApi;
+  hospitalId: string;
 }
 
 export const mapDonation = (donation: HospitalDonationApi): HospitalDonation => ({
@@ -93,13 +157,36 @@ export const mapDonation = (donation: HospitalDonationApi): HospitalDonation => 
   updatedAt: donation.updatedAt,
 });
 
+export const formatPatientInfo = (
+  patientInfo?: HospitalPatientInfo | string | null
+): string => {
+  if (!patientInfo) return "Patient info pending";
+  if (typeof patientInfo === "string") return patientInfo;
+
+  const parts = [
+    patientInfo.name && `Name: ${patientInfo.name}`,
+    patientInfo.address && `Address: ${patientInfo.address}`,
+    patientInfo.phone && `Phone: ${patientInfo.phone}`,
+    patientInfo.reasonForBlood && `Reason: ${patientInfo.reasonForBlood}`,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(" | ") : "Patient info pending";
+};
+
 export const mapHospitalDonor = (donor: HospitalDonorApi): HospitalDonor => ({
-  id: donor._id,
+  id: donor.id,
   name: donor.name,
   email: donor.email,
   phone: donor.phone,
+  gender: donor.gender ?? "N/A",
   bloodType: donor.bloodType ?? "-",
   city: donor.location?.city ?? donor.location?.displayName ?? "Unknown",
+  isDonorVerified: Boolean(donor.isDonorVerified),
+  isAvailable: Boolean(donor.isAvailable),
+  totalDonations: donor.totalDonations ?? 0,
+  lastDonationDate: donor.lastDonationDate ?? null,
+  nextAvailableAt: donor.nextAvailableAt ?? null,
+  primarySocialLink: donor.primarySocialLink ?? null,
 });
 
 export const statusStyles: Record<DonationStatus, string> = {

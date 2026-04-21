@@ -7,6 +7,7 @@ import FindDonorPage from "../../../features/findDoner/container/Finddonorpage";
 import LoginPage from "../../../features/login/ui/LoginPage";
 import HospitalLoginPage from "../../../features/hospital/ui/HospitalLoginPage";
 import HospitalDashboard from "../../../features/hospital/ui/HospitalDashboard";
+import HospitalDonorSelection from "../../../features/hospital/ui/HospitalDonorSelection";
 import DonateBlood from "../../../features/donateBlood/ui/DonateBlood";
 import RequestBloodPage from "../../../features/requestBlood/ui/RequestBloodPage";
 import BloodBankPage from "../../../features/bloodBank/ui/BloodBankPage";
@@ -40,6 +41,14 @@ export const router = createBrowserRouter([
         element: (
           <HospitalRoute>
             <HospitalDashboard />
+          </HospitalRoute>
+        ),
+      },
+      {
+        path: "donors",
+        element: (
+          <HospitalRoute>
+            <HospitalDonorSelection />
           </HospitalRoute>
         ),
       },

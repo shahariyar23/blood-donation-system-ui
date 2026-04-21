@@ -7,37 +7,68 @@ import BuildInLoader from "../loader/BuildInLoader";
 import { Toaster } from "react-hot-toast";
 import { useDispatch } from "react-redux";
 import { clearUser, setAuthUser, setLoading, setToken } from "../../redux/slices/userSlice";
+import {
+  clearHospital,
+  setAuthHospital,
+  setHospitalLoading,
+  setHospitalToken,
+} from "../../redux/slices/hospitalSlice";
 import Api from "../../utilities/api";
 import { getAuthUserApi } from "../../features/login/service/loginService";
 export default function App() {
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
   useEffect(() => {
     AOS.init({
       duration: 2000, // animation duration in ms
       once: true, // only animate once while scrolling
     });
   }, []);
-   useEffect(() => {
+
+  useEffect(() => {
     const initAuth = async () => {
-  try {
-    dispatch(setLoading(true));
+      const isHospitalRoute = window.location.pathname.startsWith("/hospital");
 
-    const res = await Api.post("/auth/refresh-token");
-console.log(res.data.data , "app.tsx")
-    if (!res?.data?.data?.accessToken) throw new Error();
+      if (isHospitalRoute) {
+        try {
+          dispatch(setLoading(false));
+          dispatch(setHospitalLoading(true));
 
-    dispatch(setToken(res.data.data.accessToken));
+          const res = await Api.post("/hospital/auth/refresh-token");
+          const accessToken = res?.data?.data?.accessToken;
+          if (!accessToken) throw new Error();
 
-    const user = await getAuthUserApi();
-    // console.log(user, "app.tsx")
-    dispatch(setAuthUser(user));
+          dispatch(setHospitalToken(accessToken));
 
-  } catch {
-    dispatch(clearUser());
-  } finally {
-    dispatch(setLoading(false));
-  }
-};
+          const hospital = res?.data?.data?.hospital;
+          if (hospital) {
+            dispatch(setAuthHospital(hospital));
+          }
+        } catch {
+          dispatch(clearHospital());
+        } finally {
+          dispatch(setHospitalLoading(false));
+        }
+
+        return;
+      }
+
+      try {
+        dispatch(setHospitalLoading(false));
+        dispatch(setLoading(true));
+
+        const res = await Api.post("/auth/refresh-token");
+        if (!res?.data?.data?.accessToken) throw new Error();
+
+        dispatch(setToken(res.data.data.accessToken));
+
+        const user = await getAuthUserApi();
+        dispatch(setAuthUser(user));
+      } catch {
+        dispatch(clearUser());
+      } finally {
+        dispatch(setLoading(false));
+      }
+    };
 
     initAuth();
   }, [dispatch]);

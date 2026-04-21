@@ -52,7 +52,7 @@ const initialState: UserState = {
   isAuthenticated: false,
   user: null,
   token: null,
-  isLoading: false,
+  isLoading: true,
 };
 
 

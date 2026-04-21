@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Icons } from "../../../shared/icons/Icons";
 import Api from "../../../utilities/api";
-import type { HospitalDonation } from "../service/hospitalData";
+import { formatPatientInfo, type HospitalDonation } from "../service/hospitalData";
 
 interface HospitalDonationModalProps {
   donation: HospitalDonation | null;
@@ -140,7 +140,7 @@ const HospitalDonationModal = ({
           </div>
           {donation.patientInfo && (
             <div className="col-span-2 bg-slate-50 border border-slate-100 rounded-md p-3 text-xs text-slate-600">
-              Patient: {donation.patientInfo}
+              Patient: {formatPatientInfo(donation.patientInfo)}
             </div>
           )}
           <div className="col-span-2 bg-slate-50 border border-slate-100 rounded-md p-3 text-xs text-slate-600">
