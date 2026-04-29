@@ -40,15 +40,20 @@ const Navbar = ({ scrolled }: NavbarProps) => {
   const [visible, setVisible] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
   // ── Logout ──────────────────────────────────────────
   const handleLogout = async () => {
+    if (logoutLoading) return;
+
+    setLogoutLoading(true);
     try {
       await logoutApi();
     } finally {
       dispatch(clearUser());
       toast.success("Logout successfully!");
       navigate("/login");
+      setLogoutLoading(false);
     }
   };
   // console.log(user)
@@ -208,12 +213,14 @@ const Navbar = ({ scrolled }: NavbarProps) => {
           {/* Logout */}
           <div className="border-t border-gray-100 py-1">
             <button
+              type="button"
               onClick={handleLogout}
+              disabled={logoutLoading}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm
-                text-red-500 hover:bg-red-50 transition-colors"
+                text-red-500 hover:bg-red-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Icons.Close className="!w-4 !h-4" />
-              Logout
+              {logoutLoading ? "Logging out..." : "Logout"}
             </button>
           </div>
         </div>
@@ -417,14 +424,16 @@ const Navbar = ({ scrolled }: NavbarProps) => {
             <div className="px-4 pb-6 pt-3 border-t border-gray-100 flex flex-col gap-2.5">
               {isAuthenticated && user ? (
                 <button
+                  type="button"
+                  disabled={logoutLoading}
                   onClick={() => {
                     handleLogout();
                     closeMenu();
                   }}
                   className="w-full py-2.5 rounded-xs border border-red-200
-                    text-red-500 text-sm font-medium hover:bg-red-50 transition-colors"
+                    text-red-500 text-sm font-medium hover:bg-red-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Logout
+                  {logoutLoading ? "Logging out..." : "Logout"}
                 </button>
               ) : (
                 <NavLink to="/login" onClick={closeMenu}>

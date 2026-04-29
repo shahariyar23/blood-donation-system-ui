@@ -14,12 +14,17 @@ const GuestRoute = ({ children }: { children: JSX.Element }) => {
   } = useSelector((state: RootState) => state.hospital);
   const location = useLocation();
   const isHospitalGuestRoute = location.pathname.startsWith("/hospital");
+  const isAdminGuestRoute = location.pathname.startsWith("/admin");
 
   if (isHospitalGuestRoute ? hospitalLoading : userLoading) return null;
 
   if (user || hospital) {
     // Redirect authenticated users to role-appropriate destination.
-    const roleDefaultPath = hospital ? "/hospital" : "/";
+    const roleDefaultPath = hospital
+      ? "/hospital"
+      : user?.role === "admin" || isAdminGuestRoute
+        ? "/admin"
+        : "/";
     const from = location.state?.from?.pathname || roleDefaultPath;
     return <Navigate to={from} replace />;
   }
