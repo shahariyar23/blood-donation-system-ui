@@ -173,7 +173,7 @@ const HospitalDonorSelection = () => {
       return;
     }
 
-    const shouldSuggest = isDigitsOnly ? digits.length >= 4 : query.length >= 1;
+    const shouldSuggest = isDigitsOnly ? digits.length >= 3 : query.length >= 1;
     if (!shouldSuggest) {
       setDonorSuggestionHint(null);
       setDonorSuggestions([]);
@@ -188,6 +188,7 @@ const HospitalDonorSelection = () => {
     const timeoutId = window.setTimeout(async () => {
       try {
         const suggestions = await fetchHospitalIdentifierSuggestions(query);
+        console.log("Suggestions received:", suggestions);
         const mapped = suggestions.slice(0, 6).map((item) => {
           const title = item.name ? `${item.name} (${item.role})` : item.identifier;
           const subtitle = [item.email, item.phone].filter(Boolean).join(" • ");
@@ -201,7 +202,8 @@ const HospitalDonorSelection = () => {
         if (!isActive) return;
         setDonorSuggestions(mapped);
         setDonorSuggestionHint(mapped.length === 0 ? "No suggestion found." : null);
-      } catch {
+      } catch (error) {
+        console.error("Suggestions API error:", error);
         if (!isActive) return;
         setDonorSuggestions([]);
         setDonorSuggestionHint("Suggestion is unavailable.");

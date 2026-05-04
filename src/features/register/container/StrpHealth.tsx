@@ -27,7 +27,7 @@ export function StepHealth({
     <div style={styles.section}>
       <div style={styles.sectionTitle}>Health information</div>
 
-      <Field label="Blood type" error={errors.bloodType}>
+      <Field label="Blood type" error={errors.bloodType} isRequired>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "8px" }}>
           {BLOOD_TYPES.map((bt) => (
             <button
@@ -47,7 +47,7 @@ export function StepHealth({
         </div>
       </Field>
 
-      <Field label="Gender" error={errors.gender}>
+      <Field label="Gender" error={errors.gender} isRequired>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
           {["male", "female"].map((g) => (
             <button
@@ -72,7 +72,7 @@ export function StepHealth({
       </Field>
 
       <div style={styles.grid3}>
-        <Field label="Age" error={errors.age}>
+        <Field label="Age" error={errors.age} isRequired>
           <input
             ref={setFieldRef("age")}
             name="age"
@@ -101,7 +101,7 @@ export function StepHealth({
           />
           <span style={styles.hint}>Min 50 kg</span>
         </Field>
-        <Field label="Date of birth">
+        <Field label="Date of birth" isRequired>
           <input
             ref={setFieldRef("dateOfBirth")}
             name="dateOfBirth"
