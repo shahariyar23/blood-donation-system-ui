@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icons } from "../../../shared/icons/Icons";
 import {
   mapHospitalDonor,
@@ -7,6 +7,7 @@ import {
 } from "../service/hospitalData";
 import {
   createHospitalDonation,
+  fetchHospitalIdentifierSuggestions,
   fetchHospitalDonorByIdentifier,
 } from "../service/hospitalService";
 
@@ -15,6 +16,16 @@ const HospitalDonorSelection = () => {
   const [donorLoading, setDonorLoading] = useState(false);
   const [donorError, setDonorError] = useState<string | null>(null);
   const [donorQuery, setDonorQuery] = useState("");
+  const [donorSuggestions, setDonorSuggestions] = useState<
+    Array<{
+      identifier: string;
+      title: string;
+      subtitle: string;
+    }>
+  >([]);
+  const [donorSuggestionsOpen, setDonorSuggestionsOpen] = useState(false);
+  const [donorSuggestionsLoading, setDonorSuggestionsLoading] = useState(false);
+  const [donorSuggestionHint, setDonorSuggestionHint] = useState<string | null>(null);
   const [selectedDonor, setSelectedDonor] = useState<HospitalDonor | null>(null);
   const [request, setRequest] = useState<HospitalDonationRequestApi | null>(null);
 
@@ -150,6 +161,66 @@ const HospitalDonorSelection = () => {
     }
   };
 
+  useEffect(() => {
+    const query = donorQuery.trim();
+    const digits = query.replace(/\D/g, "");
+    const isDigitsOnly = Boolean(digits) && digits === query;
+
+    if (!query) {
+      setDonorSuggestionHint(null);
+      setDonorSuggestions([]);
+      setDonorSuggestionsLoading(false);
+      return;
+    }
+
+    const shouldSuggest = isDigitsOnly ? digits.length >= 4 : query.length >= 1;
+    if (!shouldSuggest) {
+      setDonorSuggestionHint(null);
+      setDonorSuggestions([]);
+      setDonorSuggestionsLoading(false);
+      return;
+    }
+
+    let isActive = true;
+    setDonorSuggestionsLoading(true);
+    setDonorSuggestionHint(null);
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const suggestions = await fetchHospitalIdentifierSuggestions(query);
+        const mapped = suggestions.slice(0, 6).map((item) => {
+          const title = item.name ? `${item.name} (${item.role})` : item.identifier;
+          const subtitle = [item.email, item.phone].filter(Boolean).join(" • ");
+          return {
+            identifier: item.identifier,
+            title,
+            subtitle: subtitle || item.identifier,
+          };
+        });
+
+        if (!isActive) return;
+        setDonorSuggestions(mapped);
+        setDonorSuggestionHint(mapped.length === 0 ? "No suggestion found." : null);
+      } catch {
+        if (!isActive) return;
+        setDonorSuggestions([]);
+        setDonorSuggestionHint("Suggestion is unavailable.");
+      } finally {
+        if (isActive) {
+          setDonorSuggestionsLoading(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [donorQuery]);
+
+  const donorSuggestionsEnabled =
+    donorQuery.trim().length >= 1;
+
   return (
     <div className="space-y-6">
       <div className="rounded-lg border border-red-100 bg-[linear-gradient(120deg,#fff1f2_0%,#ffffff_55%,#eef2ff_100%)] p-6 shadow-sm">
@@ -264,10 +335,51 @@ const HospitalDonorSelection = () => {
               <Icons.Search className="w-4 h-4 text-red-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 value={donorQuery}
-                onChange={(e) => setDonorQuery(e.target.value)}
+                onChange={(e) => {
+                  setDonorQuery(e.target.value);
+                  setDonorSuggestionsOpen(true);
+                }}
+                onFocus={() => setDonorSuggestionsOpen(true)}
+                onBlur={() => window.setTimeout(() => setDonorSuggestionsOpen(false), 150)}
                 placeholder="Search by email or phone"
                 className="w-full rounded-full border border-gray-200 bg-white pl-10 pr-4 py-2.5 text-sm text-gray-700 focus:border-red-400 focus:outline-none"
               />
+
+              {donorSuggestionsOpen && donorQuery.trim() && donorSuggestionsEnabled && (
+                <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
+                  {donorSuggestionsLoading ? (
+                    <div className="px-4 py-3 text-sm text-gray-500">Searching...</div>
+                  ) : donorSuggestionHint ? (
+                    <div className="px-4 py-3 text-sm text-gray-500">{donorSuggestionHint}</div>
+                  ) : donorSuggestions.length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-gray-500">No match found. Try full email or phone.</div>
+                  ) : (
+                    <div className="max-h-64 overflow-y-auto">
+                      {donorSuggestions.map((item) => (
+                        <button
+                          key={item.identifier}
+                          type="button"
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            setDonorQuery(item.identifier);
+                            setDonorSuggestionsOpen(false);
+                            void loadDonorByIdentifier(item.identifier);
+                          }}
+                          className="flex w-full items-start justify-between gap-3 border-b border-gray-100 px-4 py-3 text-left transition hover:bg-gray-50"
+                        >
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                            <p className="mt-1 text-xs text-gray-500">{item.subtitle}</p>
+                          </div>
+                          <span className="mt-1 rounded-full bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-600">
+                            Select
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <button
               type="submit"

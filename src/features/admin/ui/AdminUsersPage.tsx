@@ -11,8 +11,8 @@ import {
   Users2,
   X,
 } from "lucide-react";
-import Api from "../../../utilities/api";
 import {
+  getAdminUserDetailsApi,
   getAdminUsersApi,
   getAdminSettingsApi,
   updateAdminCommunityFlagsApi,
@@ -21,22 +21,7 @@ import {
   verifyAdminUserApi,
 } from "../service/adminService.ts";
 import { downloadCsv, formatAdminDate } from "../service/adminReporting.ts";
-import type { AdminUser } from "../types/admin";
-
-interface AdminUserDetails extends AdminUser {
-  avatar?: string | null;
-  lastDonationDate?: string | null;
-  totalDonations?: number;
-  lastReceivedDate?: string | null;
-  totalReceived?: number;
-  nextEligibleDate?: string | null;
-  location?: {
-    city?: string;
-    country?: string;
-    state?: string;
-  };
-  updatedAt?: string;
-}
+import type { AdminUser, AdminUserDetails } from "../types/admin";
 
 const userCsvColumns = [
   { label: "Name", value: (user: AdminUser) => user.name },
@@ -111,10 +96,9 @@ export default function AdminUsersPage() {
     const loadUserDetails = async () => {
       setDetailsLoading(true);
       try {
-        const response = await Api.get(`/users/${selectedUser._id}`);
-        const payload = response.data?.data as AdminUserDetails | undefined;
+        const payload = await getAdminUserDetailsApi(selectedUser._id);
         if (isActive) {
-          setSelectedUserDetails(payload ?? selectedUser);
+          setSelectedUserDetails({ ...selectedUser, ...payload });
         }
       } catch {
         if (isActive) {
@@ -171,7 +155,7 @@ export default function AdminUsersPage() {
   );
 
   const selectedUserRole = selectedUserDetails?.role ?? selectedUser?.role ?? null;
-  const selectedUserLastDonationDate = selectedUserDetails?.lastDonationDate ?? null;
+  const selectedUserLastDonationDate = selectedUserDetails?.donorInfo?.lastDonationDate ?? null;
   const selectedUserNextEligibleDate = useMemo<string | undefined>(() => {
     if (selectedUserRole !== "donor" || !selectedUserLastDonationDate || !eligibilityDays) {
       return undefined;
@@ -588,7 +572,7 @@ export default function AdminUsersPage() {
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                   <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Location</p>
                   <p className="mt-2 text-sm font-semibold text-zinc-100">
-                    {selectedUserDetails?.location?.city ?? "N/A"}
+                    {"N/A"}
                   </p>
                 </div>
               </div>
@@ -604,21 +588,31 @@ export default function AdminUsersPage() {
                   <h3 className="text-lg font-semibold text-zinc-100">Donor activity</h3>
                   <div className="mt-4 grid gap-4 md:grid-cols-3">
                     <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Total donations</p>
+                      <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Donor verified</p>
                       <p className="mt-2 text-sm font-semibold text-zinc-100">
-                        {selectedUserDetails?.totalDonations ?? 0}
+                        {selectedUserDetails?.donorInfo
+                          ? selectedUserDetails.donorInfo.isVerified
+                            ? "Yes"
+                            : "No"
+                          : "N/A"}
                       </p>
                     </div>
                     <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Total received</p>
+                      <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Total donations</p>
                       <p className="mt-2 text-sm font-semibold text-zinc-100">
-                        {selectedUserDetails?.totalReceived ?? 0}
+                        {selectedUserDetails?.donorInfo?.totalDonations ?? 0}
                       </p>
                     </div>
                     <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                       <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Last donation</p>
                       <p className="mt-2 text-sm font-semibold text-zinc-100">
-                        {formatAdminDate(selectedUserDetails?.lastDonationDate ?? undefined)}
+                        {formatAdminDate(selectedUserDetails?.donorInfo?.lastDonationDate ?? undefined)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                      <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Last units</p>
+                      <p className="mt-2 text-sm font-semibold text-zinc-100">
+                        {renderDetailValue(selectedUserDetails?.donorInfo?.lastDonationUnits)}
                       </p>
                     </div>
                     <div className="rounded-xl border border-white/10 bg-white/5 p-4">
@@ -634,21 +628,10 @@ export default function AdminUsersPage() {
                 </div>
               ) : (
                 <div className="mt-6 rounded-2xl border border-sky-400/20 bg-sky-500/5 p-5">
-                  <h3 className="text-lg font-semibold text-zinc-100">Receive activity</h3>
-                  <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Total received</p>
-                      <p className="mt-2 text-sm font-semibold text-zinc-100">
-                        {selectedUserDetails?.totalReceived ?? 0}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Last received</p>
-                      <p className="mt-2 text-sm font-semibold text-zinc-100">
-                        {formatAdminDate(selectedUserDetails?.lastReceivedDate ?? undefined)}
-                      </p>
-                    </div>
-                  </div>
+                  <h3 className="text-lg font-semibold text-zinc-100">User activity</h3>
+                  <p className="mt-2 text-sm text-zinc-300">
+                    No donor activity available for this role.
+                  </p>
                 </div>
               )}
             </div>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { FileDown, Heart, X } from "lucide-react";
 import Pagination from "../../../shared/components/Pagination";
-import { getAdminDonationsApi, getAdminDashboardApi, getAdminDonationDetailsApi } from "../service/adminService.ts";
+import { getAdminDonationsApi, getAdminDashboardApi, getAdminDonationDetailsApi, updateAdminDonationStatusApi } from "../service/adminService.ts";
 import { downloadCsv, formatAdminDate } from "../service/adminReporting.ts";
 import type { AdminDonation, AdminDonationDetails } from "../types/admin";
 
@@ -159,13 +159,30 @@ export default function AdminDonationsPage() {
 
     try {
       setActionLoading(true);
-      // TODO: wire this to the donation status update endpoint.
-      setDonations(donations.map(d => 
-        d._id === selectedDonation._id 
-          ? { ...d, status: newStatus, notes: actionReason } 
+      const demoPayload = {
+        donationId: selectedDonation._id,
+        status: newStatus,
+        notes: actionReason,
+      };
+
+      // Demo payload for backend API (logged for debugging)
+      // { donationId, status, notes }
+      // Example: { donationId: "abc123", status: "approved", notes: "Verified blood test" }
+      // Call the API to update donation status
+      console.debug("Donation status update payload:", demoPayload);
+
+      await updateAdminDonationStatusApi(selectedDonation._id, {
+        status: newStatus,
+        notes: actionReason,
+      });
+
+      // update local state after successful API call
+      setDonations(donations.map((d) =>
+        d._id === selectedDonation._id
+          ? { ...d, status: newStatus, notes: actionReason }
           : d
       ));
-      
+
       toast.success(`Donation marked as ${newStatus}`);
       setSelectedDonation(null);
       setActionReason("");

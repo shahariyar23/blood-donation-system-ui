@@ -2,6 +2,8 @@ import Api from "../../../utilities/api";
 import type { IReduxUser } from "../../../redux/slices/userSlice";
 import type {
   AdminDashboardData,
+  AdminHospital,
+  AdminHospitalsResponse,
   AdminMe,
   AdminReportsResponse,
   AdminUsersResponse,
@@ -10,6 +12,7 @@ import type {
   AdminDonationsResponse,
   AdminVerificationsResponse,
   AdminSettings,
+  AdminUserDetails,
 } from "../types/admin";
 
 export interface AdminLoginPayload {
@@ -39,6 +42,12 @@ export interface AdminUsersQuery {
   page?: number;
   limit?: number;
   role?: string;
+  search?: string;
+}
+
+export interface AdminHospitalsQuery {
+  page?: number;
+  limit?: number;
   search?: string;
 }
 
@@ -81,6 +90,47 @@ export const getAdminUsersApi = async (query: AdminUsersQuery) => {
   const res = await Api.get<ApiEnvelope<AdminUsersResponse>>("/admin/users", {
     params: query,
   });
+  return res.data.data;
+};
+
+export const getAdminHospitalsApi = async (query: AdminHospitalsQuery) => {
+  const res = await Api.get<ApiEnvelope<AdminHospitalsResponse>>("/admin/hospitals", {
+    params: query,
+  });
+  return res.data.data;
+};
+
+export const getAdminHospitalDetailsApi = async (id: string) => {
+  const res = await Api.get<ApiEnvelope<AdminHospital>>(`/admin/hospitals/${id}`);
+  return res.data.data;
+};
+
+export const updateAdminHospitalStatusApi = async (id: string, isActive: boolean) => {
+  const res = await Api.patch<ApiEnvelope<{ _id: string; isActive: boolean }>>(
+    `/admin/hospitals/${id}/status`,
+    { isActive }
+  );
+  return res.data;
+};
+
+export const verifyAdminHospitalApi = async (id: string) => {
+  const res = await Api.patch<ApiEnvelope<{ _id: string; isVerified: boolean }>>(
+    `/admin/hospitals/${id}/verify`,
+    {}
+  );
+  return res.data;
+};
+
+export const unverifyAdminHospitalApi = async (id: string) => {
+  const res = await Api.patch<ApiEnvelope<{ _id: string; isVerified: boolean }>>(
+    `/admin/hospitals/${id}/unverify`,
+    {}
+  );
+  return res.data;
+};
+
+export const getAdminUserDetailsApi = async (id: string) => {
+  const res = await Api.get<ApiEnvelope<AdminUserDetails>>(`/admin/users/${id}`);
   return res.data.data;
 };
 
@@ -167,6 +217,17 @@ export const getAdminDonationDetailsApi = async (id: string) => {
   return res.data.data;
 };
 
+export const updateAdminDonationStatusApi = async (
+  id: string,
+  payload: { status: string; notes?: string }
+) => {
+  const res = await Api.patch<ApiEnvelope<{ _id: string; status: string }>>(
+    `/admin/donations/${id}/status`,
+    payload
+  );
+  return res.data;
+};
+
 export interface AdminVerificationsQuery {
   page?: number;
   limit?: number;
@@ -195,5 +256,47 @@ export const getAdminSettingsApi = async () => {
 
 export const updateAdminSettingsApi = async (payload: Partial<AdminSettings>) => {
   const res = await Api.patch<ApiEnvelope<AdminSettings>>("/admin/settings", payload);
+  return res.data.data;
+};
+
+export interface AdminCreateHospitalPayload {
+  hospitalName: string;
+  registrationNumber: string;
+  email: string;
+  password: string;
+  phone: string;
+  website?: string;
+  licenseNumber: string;
+  adminName: string;
+  adminEmail: string;
+  adminPhone: string;
+  totalBedCapacity: number;
+  bloodBankCapacity: number;
+  address: string;
+  location: {
+    area: string;
+    district: string;
+    division: string;
+    coordinates: {
+      lat: number;
+      lng: number;
+    };
+  };
+  sendCredentialsEmail?: boolean;
+  emailNote?: string;
+}
+
+export const createAdminHospitalApi = async (payload: AdminCreateHospitalPayload) => {
+  const {
+    sendCredentialsEmail: _sendCredentialsEmail,
+    emailNote: _emailNote,
+    ...registerPayload
+  } = payload;
+
+  const res = await Api.post<ApiEnvelope<{ _id?: string; hospitalName?: string; email?: string; hospital?: unknown }>>(
+    "/hospital/auth/register",
+    registerPayload
+  );
+
   return res.data.data;
 };

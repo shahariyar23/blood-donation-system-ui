@@ -6,6 +6,7 @@ import {
   Building2,
   FileDown,
   FileText,
+  Layers3,
   PieChart,
   ShieldCheck,
   TrendingUp,
@@ -25,9 +26,9 @@ import {
   Tooltip,
 } from "chart.js";
 import { Bar, Doughnut, Line } from "react-chartjs-2";
-import { getAdminDashboardApi } from "../service/adminService.ts";
+import { getAdminDashboardApi, getAdminSettingsApi } from "../service/adminService.ts";
 import { downloadJson, formatAdminDate } from "../service/adminReporting.ts";
-import type { AdminDashboardStats } from "../types/admin";
+import type { AdminDashboardStats, AdminSettings } from "../types/admin";
 
 ChartJS.register(
   ArcElement,
@@ -280,16 +281,21 @@ export default function AdminDashboard() {
   const [recentReports, setRecentReports] = useState<
     Awaited<ReturnType<typeof getAdminDashboardApi>>["recentReports"]
   >([]);
+  const [settings, setSettings] = useState<AdminSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<ChartRange>("6m");
 
   useEffect(() => {
     const run = async () => {
       try {
-        const data = await getAdminDashboardApi();
+        const [data, adminSettings] = await Promise.all([
+          getAdminDashboardApi(),
+          getAdminSettingsApi(),
+        ]);
         setStats(data.stats);
         setRecentUsers(data.recentUsers ?? []);
         setRecentReports(data.recentReports ?? []);
+        setSettings(adminSettings);
       } catch {
         toast.error("Failed to load dashboard");
       } finally {
@@ -313,6 +319,7 @@ export default function AdminDashboard() {
   const weeklySeries = buildWeeklyDonorSeries(recentUsers);
   const bloodTypeDistribution = buildBloodTypeDistribution(recentUsers, stats.totalDonors);
   const statusBreakdown = buildStatusBreakdown(recentReports);
+  const bloodBankSettings = settings?.bloodBankSettings;
   const today = new Date();
 
   const lineData = {
@@ -492,6 +499,50 @@ export default function AdminDashboard() {
     },
   };
 
+  const relationData = {
+    labels: ["Hospitals", "Min donors/bank", "Max requests/day", "Expiry days"],
+    datasets: [
+      {
+        label: "Network relation",
+        data: [
+          stats.totalHospitals,
+          bloodBankSettings?.minDonorsPerBank ?? 0,
+          bloodBankSettings?.maxRequestsPerDay ?? 0,
+          bloodBankSettings?.requestExpirationDays ?? 0,
+        ],
+        backgroundColor: ["#2563eb", "#dc2626", "#f59e0b", "#0f766e"],
+        borderRadius: 10,
+        borderSkipped: false,
+      },
+    ],
+  };
+
+  const relationOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#111827",
+        titleColor: "#ffffff",
+        bodyColor: "#ffffff",
+        borderColor: "rgba(255,255,255,0.12)",
+        borderWidth: 1,
+      },
+    },
+    scales: {
+      x: {
+        ticks: { color: chartTickColor },
+        grid: { display: false },
+      },
+      y: {
+        beginAtZero: true,
+        ticks: { color: chartTickColor, precision: 0 },
+        grid: { color: chartGridColor },
+      },
+    },
+  };
+
   const donorThisWeek = weeklySeries.reduce((sum, point) => sum + point.value, 0);
   const donorLastWeek = Math.max(0, donorThisWeek - Math.round(donorThisWeek * 0.18));
 
@@ -586,6 +637,21 @@ export default function AdminDashboard() {
         <StatCard label="Pending requests" value={stats.totalBloodRequests} detail="Blood requests currently tracked by the platform." chip="Queue" icon={FileText} accent="request" />
         <StatCard label="Total donations" value={stats.totalDonations} detail="Completed donations logged in the system." chip="Tracked" icon={Activity} accent="donation" />
       </div>
+
+      <article className="rounded-3xl border border-white/10 bg-[#2a2a2a] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.24)]">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[2px] text-zinc-400">Hospital and blood bank relation</p>
+            <h2 className="mt-1 text-lg font-semibold text-white">Network capacity overview</h2>
+            <p className="mt-1 text-sm text-zinc-400">A quick read on hospital coverage and blood-bank operating thresholds.</p>
+          </div>
+          <Layers3 className="h-5 w-5 text-zinc-400" />
+        </div>
+
+        <div className="mt-5 h-72 rounded-3xl border border-white/8 bg-[#333333] p-4">
+          <Bar data={relationData} options={relationOptions} />
+        </div>
+      </article>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <article className="rounded-3xl border border-white/10 bg-[#2a2a2a] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.24)]">

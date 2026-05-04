@@ -39,6 +39,7 @@ export interface AdminPagination {
 export interface AdminUser {
   _id: string;
   name: string;
+  hospitalName?: string;
   email: string;
   phone?: string;
   avatar?: string | null;
@@ -49,10 +50,73 @@ export interface AdminUser {
   isDonorVerified?: boolean;
   communityFlags?: number;
   createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AdminDonorInfo {
+  _id: string;
+  isVerified: boolean;
+  totalDonations: number;
+  lastDonationDate: string | null;
+  lastDonationUnits: number | null;
+}
+
+export interface AdminUserDetails extends AdminUser {
+  donorInfo?: AdminDonorInfo;
 }
 
 export interface AdminUsersResponse {
   users: AdminUser[];
+  pagination: AdminPagination;
+}
+
+export interface AdminHospitalAuditLog {
+  action: string;
+  performedBy?: string;
+  performedAt?: string;
+  changes?: Record<string, unknown>;
+  ipAddress?: string;
+  userAgent?: string;
+  notes?: string;
+}
+
+export interface AdminHospital {
+  _id: string;
+  hospitalName: string;
+  registrationNumber: string;
+  email: string;
+  phone: string;
+  website?: string | null;
+  licenseNumber: string;
+  adminName: string;
+  adminEmail: string;
+  adminPhone: string;
+  totalBedCapacity: number;
+  bloodBankCapacity: number;
+  isVerified: boolean;
+  isActive: boolean;
+  isDeleted?: boolean;
+  address: string;
+  location?: {
+    area?: string;
+    district?: string;
+    division?: string;
+    coordinates?: {
+      type?: "Point" | string;
+      coordinates?: [number, number] | number[];
+    };
+  };
+  passwordResetToken?: string | null;
+  passwordResetExpires?: string | null;
+  refreshTokenHash?: string | null;
+  refreshTokenExpiresAt?: string | null;
+  auditLogs?: AdminHospitalAuditLog[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AdminHospitalsResponse {
+  hospitals: AdminHospital[];
   pagination: AdminPagination;
 }
 

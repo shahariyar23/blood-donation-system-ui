@@ -17,6 +17,8 @@ import AdminBloodRequestsPage from "../../../features/admin/ui/AdminBloodRequest
 import AdminDonationsPage from "../../../features/admin/ui/AdminDonationsPage";
 import AdminVerificationsPage from "../../../features/admin/ui/AdminVerificationsPage";
 import AdminSettingsPage from "../../../features/admin/ui/AdminSettingsPage";
+import AdminHospitalsPage from "../../../features/admin/ui/AdminHospitalsPage";
+import AdminBloodBanksPage from "../../../features/admin/ui/AdminBloodBanksPage";
 import DonateBlood from "../../../features/donateBlood/ui/DonateBlood";
 import RequestBloodPage from "../../../features/requestBlood/ui/RequestBloodPage";
 import BloodBankPage from "../../../features/bloodBank/ui/BloodBankPage";
@@ -129,6 +131,22 @@ export const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <AdminSettingsPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "hospitals",
+        element: (
+          <AdminRoute>
+            <AdminHospitalsPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "blood-banks",
+        element: (
+          <AdminRoute>
+            <AdminBloodBanksPage />
           </AdminRoute>
         ),
       },

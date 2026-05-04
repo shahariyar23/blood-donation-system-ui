@@ -96,6 +96,18 @@ export interface HospitalDonorSearchResponse {
   donor: HospitalDonorApi | null;
 }
 
+export interface HospitalIdentifierSuggestion {
+  identifier: string;
+  name: string;
+  role: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface HospitalIdentifierSuggestionsResponse {
+  suggestions: HospitalIdentifierSuggestion[];
+}
+
 export interface DonationRequestPatientInfo {
   name: string;
   address: string;

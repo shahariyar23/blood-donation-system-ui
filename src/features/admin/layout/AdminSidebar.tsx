@@ -4,9 +4,10 @@ import {
   LayoutDashboard,
   ListChecks,
   LogOut,
-  Settings,
+  Building2,
   Shield,
   Users2,
+  Warehouse,
 } from "lucide-react";
 
 type SidebarItem = {
@@ -38,10 +39,10 @@ const buildSidebarSections = (usersCount?: number | null, donationsCount?: numbe
     ],
   },
   {
-    label: "System",
+    label: "Management",
     items: [
-      { label: "Verifications", to: "/admin/verifications", icon: Shield, badge: "5" },
-      { label: "Settings", to: "/admin/settings", icon: Settings, badge: null },
+      { label: "Hospital", to: "/admin/hospitals", icon: Building2, badge: null },
+      { label: "Blood Bank", to: "/admin/blood-banks", icon: Warehouse, badge: null },
     ],
   },
 ];
