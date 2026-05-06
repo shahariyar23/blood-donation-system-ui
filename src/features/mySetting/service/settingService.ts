@@ -72,7 +72,7 @@ export const logoutOtherSessionsApi = async (): Promise<LogoutOthersResponse> =>
 
 // POST /api/v1/auth/deactivate-account
 export const deactivateAccountApi = async (): Promise<AccountActionResponse> => {
-  const res = await api.post("/api/v1/auth/deactivate-account");
+  const res = await api.post("/auth/deactivate-account");
   return res.data;
 };
 
@@ -80,7 +80,7 @@ export const deactivateAccountApi = async (): Promise<AccountActionResponse> => 
 export const deleteAccountApi = async (
   reason?: string,
 ): Promise<AccountActionResponse> => {
-  const res = await api.delete("/api/v1/auth/delete-account", {
+  const res = await api.delete("/auth/delete-account", {
     data: reason ? { reason } : undefined,
   });
   return res.data;

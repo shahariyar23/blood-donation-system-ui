@@ -12,7 +12,6 @@ import toast from "react-hot-toast";
 const navLinks = [
   { label: "Home", href: "/" },
   { label: "Find Donor", href: "/find-donor" },
-  { label: "Donate Blood", href: "/donate" },
   { label: "Request Blood", href: "/request" },
   { label: "Blood Banks", href: "/blood-banks" },
   { label: "About", href: "/about" },

@@ -10,6 +10,9 @@ import {
   UserX,
   Users2,
   X,
+  ChevronDown,
+  Shield,
+  Ban,
 } from "lucide-react";
 import {
   getAdminUserDetailsApi,
@@ -45,6 +48,7 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [eligibilityDays, setEligibilityDays] = useState<number | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
   const fetchUsers = async () => {
     try {
@@ -247,19 +251,19 @@ export default function AdminUsersPage() {
 
   return (
     <section className="space-y-6">
-      <div className="rounded-3xl border border-white/10 bg-[linear-gradient(135deg,#3d1014_0%,#2a1416_44%,#1f222a_100%)] p-6 shadow-[0_12px_40px_rgba(0,0,0,0.28)]">
+      <div className="rounded-3xl border border-gradient-to-r from-amber-500/30 to-orange-500/20 bg-[linear-gradient(135deg,#3d1014_0%,#2a1416_44%,#1f222a_100%)] p-8 shadow-[0_12px_40px_rgba(0,0,0,0.28)] backdrop-blur-md">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[3px] text-amber-300 font-semibold">Admin users</p>
-            <h1 className="mt-2 text-3xl font-semibold text-zinc-100">Verification and safety</h1>
-            <p className="mt-2 max-w-2xl text-sm text-zinc-300">
+            <h1 className="mt-2 text-4xl font-bold bg-gradient-to-r from-amber-300 to-orange-300 bg-clip-text text-transparent">Verification and safety</h1>
+            <p className="mt-3 max-w-2xl text-sm text-zinc-300">
               Review account status, verify users and donors, and export the current moderation list.
             </p>
           </div>
           <button
             type="button"
             onClick={handleExportUsers}
-            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
+            className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-orange-500/10 px-6 py-3 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/20 hover:border-amber-500/50 hover:shadow-lg hover:shadow-amber-500/20"
           >
             <FileDown className="h-4 w-4" />
             Generate report
@@ -267,36 +271,56 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl border border-indigo-400/40 bg-[linear-gradient(135deg,#6366F1_0%,#4F46E5_100%)] p-5 shadow-[0_8px_28px_rgba(99,102,241,0.24)]">
-          <p className="text-xs uppercase tracking-[2px] text-indigo-100 font-medium">Total users</p>
-          <p className="mt-2 text-2xl font-semibold text-white">{verificationSummary.total}</p>
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-indigo-400/40 bg-gradient-to-br from-indigo-500/15 to-indigo-600/10 p-6 shadow-[0_12px_28px_rgba(99,102,241,0.18)] hover:shadow-[0_16px_40px_rgba(99,102,241,0.25)] transition backdrop-blur-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[2px] text-indigo-200 font-semibold">Total users</p>
+              <p className="mt-3 text-3xl font-bold text-indigo-100">{verificationSummary.total}</p>
+            </div>
+            <Users2 className="h-8 w-8 text-indigo-400/50" />
+          </div>
         </div>
-        <div className="rounded-2xl border border-emerald-400/40 bg-[linear-gradient(135deg,#10B981_0%,#059669_100%)] p-5 shadow-[0_8px_28px_rgba(16,185,129,0.24)]">
-          <p className="text-xs uppercase tracking-[2px] text-emerald-100 font-medium">Verified</p>
-          <p className="mt-2 text-2xl font-semibold text-white">{verificationSummary.verified}</p>
+        <div className="rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/15 to-emerald-600/10 p-6 shadow-[0_12px_28px_rgba(16,185,129,0.18)] hover:shadow-[0_16px_40px_rgba(16,185,129,0.25)] transition backdrop-blur-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[2px] text-emerald-200 font-semibold">Verified</p>
+              <p className="mt-3 text-3xl font-bold text-emerald-100">{verificationSummary.verified}</p>
+            </div>
+            <CheckCircle className="h-8 w-8 text-emerald-400/50" />
+          </div>
         </div>
-        <div className="rounded-2xl border border-amber-400/40 bg-[linear-gradient(135deg,#F59E0B_0%,#D97706_100%)] p-5 shadow-[0_8px_28px_rgba(245,158,11,0.24)]">
-          <p className="text-xs uppercase tracking-[2px] text-amber-100 font-medium">Pending review</p>
-          <p className="mt-2 text-2xl font-semibold text-white">{verificationSummary.pending}</p>
+        <div className="rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/15 to-amber-600/10 p-6 shadow-[0_12px_28px_rgba(245,158,11,0.18)] hover:shadow-[0_16px_40px_rgba(245,158,11,0.25)] transition backdrop-blur-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[2px] text-amber-200 font-semibold">Pending review</p>
+              <p className="mt-3 text-3xl font-bold text-amber-100">{verificationSummary.pending}</p>
+            </div>
+            <Flag className="h-8 w-8 text-amber-400/50" />
+          </div>
         </div>
-        <div className="rounded-2xl border border-sky-400/40 bg-[linear-gradient(135deg,#0EA5E9_0%,#0284C7_100%)] p-5 shadow-[0_8px_28px_rgba(14,165,233,0.24)]">
-          <p className="text-xs uppercase tracking-[2px] text-sky-100 font-medium">Donors</p>
-          <p className="mt-2 text-2xl font-semibold text-white">{verificationSummary.donors}</p>
+        <div className="rounded-2xl border border-sky-400/40 bg-gradient-to-br from-sky-500/15 to-sky-600/10 p-6 shadow-[0_12px_28px_rgba(14,165,233,0.18)] hover:shadow-[0_16px_40px_rgba(14,165,233,0.25)] transition backdrop-blur-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[2px] text-sky-200 font-semibold">Donors</p>
+              <p className="mt-3 text-3xl font-bold text-sky-100">{verificationSummary.donors}</p>
+            </div>
+            <ShieldCheck className="h-8 w-8 text-sky-400/50" />
+          </div>
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-6 flex flex-wrap gap-3 rounded-2xl border border-white/10 bg-[#232630]/50 p-5 backdrop-blur-sm">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name or email"
-          className="rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-400"
+          className="rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-amber-500/50 focus:bg-white/10 focus:outline-none transition"
         />
         <select
           value={role}
           onChange={(e) => setRole(e.target.value)}
-          className="rounded-xl border border-white/15 bg-[linear-gradient(135deg,#1a1a2e_0%,#16213e_100%)] px-3 py-2 text-sm text-zinc-100 font-medium cursor-pointer hover:border-white/25 transition"
+          className="rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-zinc-100 font-medium cursor-pointer hover:border-white/25 focus:border-amber-500/50 focus:bg-white/10 focus:outline-none transition"
         >
           <option value="" style={{ backgroundColor: "#16213e", color: "#f1f5f9" }}>All roles</option>
           <option value="user" style={{ backgroundColor: "#16213e", color: "#f1f5f9" }}>User</option>
@@ -305,7 +329,7 @@ export default function AdminUsersPage() {
         </select>
         <button
           onClick={() => void fetchUsers()}
-          className="rounded-xl bg-[linear-gradient(135deg,#8B5CF6_0%,#7C3AED_100%)] px-4 py-2 text-sm font-medium text-white transition hover:shadow-lg hover:scale-105 active:scale-95"
+          className="rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:shadow-lg hover:shadow-amber-500/20 hover:scale-105 active:scale-95"
         >
           Filter
         </button>
@@ -319,7 +343,7 @@ export default function AdminUsersPage() {
               key={item.value}
               type="button"
               onClick={() => setVerification(item.value)}
-              className={`rounded-full px-4 py-2 text-xs font-semibold transition ${verification === item.value ? "bg-[linear-gradient(135deg,#8B5CF6_0%,#7C3AED_100%)] text-white shadow-lg" : "bg-white/10 border border-white/15 text-zinc-200 hover:bg-white/15 hover:text-white"}`}
+              className={`rounded-full px-5 py-2.5 text-xs font-semibold transition ${verification === item.value ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/20" : "bg-white/10 border border-white/15 text-zinc-200 hover:bg-white/15 hover:text-white hover:border-white/25"}`}
             >
               {item.label}
             </button>
@@ -327,18 +351,18 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      <div className="mt-4 overflow-x-auto rounded-xl border border-white/10 bg-[#1a1d24]">
-        <table className="w-full text-sm" style={{ minWidth: "900px" }}>
-          <thead className="bg-[#232630] text-left text-zinc-200">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Name</th>
-              <th className="px-4 py-3 font-semibold">Email</th>
-              <th className="px-4 py-3 font-semibold">Role</th>
-              <th className="px-4 py-3 font-semibold">Verified</th>
-              <th className="px-4 py-3 font-semibold">Status</th>
-              <th className="px-4 py-3 font-semibold">Donor Verified</th>
-              <th className="px-4 py-3 font-semibold">Flags</th>
-              <th className="px-4 py-3 font-semibold">Actions</th>
+      <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-[#1a1d24] shadow-[0_12px_40px_rgba(0,0,0,0.3)]">
+        <table className="w-full text-sm" style={{ minWidth: "1200px" }}>
+          <thead className="bg-gradient-to-r from-[#232630] to-[#2a2d35] text-left text-zinc-200">
+            <tr className="border-b border-white/10">
+              <th className="px-4 py-4 font-semibold text-zinc-100">Name</th>
+              <th className="px-4 py-4 font-semibold text-zinc-100">Email</th>
+              <th className="px-4 py-4 font-semibold text-zinc-100">Role</th>
+              <th className="px-4 py-4 font-semibold text-zinc-100">Verified</th>
+              <th className="px-4 py-4 font-semibold text-zinc-100">Status</th>
+              <th className="px-4 py-4 font-semibold text-zinc-100">Verify Donor</th>
+              <th className="px-4 py-4 font-semibold text-zinc-100">Flags</th>
+              <th className="px-4 py-4 font-semibold text-zinc-100">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -358,79 +382,136 @@ export default function AdminUsersPage() {
               visibleUsers.map((user) => (
                 <tr
                   key={user._id}
-                  className="border-t border-white/10 cursor-pointer transition hover:bg-white/5"
-                  onClick={() => setSelectedUser(user)}
+                  className="border-t border-white/10 transition hover:bg-white/5"
                 >
-                  <td className="px-4 py-3 font-medium text-zinc-100">{user.name}</td>
-                  <td className="px-4 py-3 text-zinc-400">{user.email}</td>
-                  <td className="px-4 py-3 uppercase text-xs tracking-[1px] text-zinc-400">{user.role}</td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-1 text-xs font-medium ${user.isVerified ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"}`}>
-                      {user.isVerified ? "Verified" : "Pending"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-1 text-xs font-medium ${user.isActive ? "bg-emerald-500/20 text-emerald-300" : "bg-rose-500/20 text-rose-300"}`}>
-                      {user.isActive ? "Active" : "Banned"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-400">{user.isDonorVerified ? "Yes" : "No"}</td>
-                  <td className="px-4 py-3 text-zinc-400">{user.communityFlags ?? 0}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
+                  <td className="px-4 py-4 font-medium text-zinc-100">{user.name}</td>
+                  <td className="px-4 py-4 text-zinc-400">{user.email}</td>
+                  <td className="px-4 py-4 uppercase text-xs tracking-[1px] text-zinc-400 font-semibold">{user.role}</td>
+                  
+                  {/* Verified Column with Dropdown */}
+                  <td className="px-4 py-4 relative">
+                    <div className="relative">
                       <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void handleToggleStatus(user);
-                        }}
-                        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold bg-[linear-gradient(135deg,#EF4444_0%,#DC2626_100%)] text-white transition hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-50"
-                        title={user.isActive ? "Ban this user" : "Activate this user"}
+                        onClick={() => setOpenDropdown(openDropdown === `verified-${user._id}` ? null : `verified-${user._id}`)}
+                        className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold transition ${user.isVerified ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30" : "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"}`}
                       >
-                        <Lock className="h-3.5 w-3.5" />
-                        {user.isActive ? "Ban" : "Activate"}
+                        <span>{user.isVerified ? "Verified" : "Pending"}</span>
+                        <ChevronDown className="h-3.5 w-3.5" />
                       </button>
-                      {!user.isVerified && (
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void handleVerifyUser(user);
-                          }}
-                          className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold bg-[linear-gradient(135deg,#10B981_0%,#059669_100%)] text-white transition hover:shadow-lg hover:scale-105 active:scale-95"
-                          title="Verify this user account"
-                        >
-                          <CheckCircle className="h-3.5 w-3.5" />
-                          Verify user
-                        </button>
+                      {openDropdown === `verified-${user._id}` && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-[#2a2d35] border border-white/10 rounded-lg shadow-lg z-40">
+                          {!user.isVerified && (
+                            <button
+                              onClick={() => {
+                                setOpenDropdown(null);
+                                void handleVerifyUser(user);
+                              }}
+                              className="w-full px-3 py-2 text-left text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition flex items-center gap-2 border-b border-white/10"
+                            >
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              Verify user
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              setOpenDropdown(null);
+                              void handleToggleStatus(user);
+                            }}
+                            className="w-full px-3 py-2 text-left text-xs font-semibold text-rose-300 hover:bg-rose-500/20 transition flex items-center gap-2"
+                          >
+                            <Lock className="h-3.5 w-3.5" />
+                            Ban
+                          </button>
+                        </div>
                       )}
-                      {user.role === "donor" && !user.isDonorVerified && (
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void handleVerifyDonor(user);
-                          }}
-                          className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold bg-[linear-gradient(135deg,#3B82F6_0%,#1D4ED8_100%)] text-white transition hover:shadow-lg hover:scale-105 active:scale-95"
-                          title="Verify donor eligibility"
-                        >
-                          <ShieldCheck className="h-3.5 w-3.5" />
-                          Verify donor
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void handleSetFlags(user);
-                        }}
-                        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold bg-[linear-gradient(135deg,#F59E0B_0%,#D97706_100%)] text-white transition hover:shadow-lg hover:scale-105 active:scale-95"
-                        title="Set community flags"
-                      >
-                        <Flag className="h-3.5 w-3.5" />
-                        Set flags
-                      </button>
                     </div>
+                  </td>
+                  
+                  {/* Status Column with Dropdown */}
+                  <td className="px-4 py-4 relative">
+                    <div className="relative">
+                      <button
+                        onClick={() => setOpenDropdown(openDropdown === `status-${user._id}` ? null : `status-${user._id}`)}
+                        className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold transition ${user.isActive ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30" : "bg-rose-500/20 text-rose-300 hover:bg-rose-500/30"}`}
+                      >
+                        <span>{user.isActive ? "Active" : "Blocked"}</span>
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </button>
+                      {openDropdown === `status-${user._id}` && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-[#2a2d35] border border-white/10 rounded-lg shadow-lg z-40">
+                          {user.isActive ? (
+                            <button
+                              onClick={() => {
+                                setOpenDropdown(null);
+                                void handleToggleStatus(user);
+                              }}
+                              className="w-full px-3 py-2 text-left text-xs font-semibold text-rose-300 hover:bg-rose-500/20 transition flex items-center gap-2"
+                            >
+                              <Ban className="h-3.5 w-3.5" />
+                              Block
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setOpenDropdown(null);
+                                void handleToggleStatus(user);
+                              }}
+                              className="w-full px-3 py-2 text-left text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition flex items-center gap-2"
+                            >
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              Activate
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  
+                  {/* Verify Donor Column with Dropdown */}
+                  <td className="px-4 py-4 relative">
+                    {user.role === "donor" ? (
+                      <div className="relative">
+                        <button
+                          onClick={() => setOpenDropdown(openDropdown === `donor-${user._id}` ? null : `donor-${user._id}`)}
+                          className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold transition ${user.isDonorVerified ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30" : "bg-sky-500/20 text-sky-300 hover:bg-sky-500/30"}`}
+                        >
+                          <span>{user.isDonorVerified ? "Verified" : "Pending"}</span>
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </button>
+                        {openDropdown === `donor-${user._id}` && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-[#2a2d35] border border-white/10 rounded-lg shadow-lg z-40">
+                            {!user.isDonorVerified && (
+                              <button
+                                onClick={() => {
+                                  setOpenDropdown(null);
+                                  void handleVerifyDonor(user);
+                                }}
+                                className="w-full px-3 py-2 text-left text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition flex items-center gap-2"
+                              >
+                                <ShieldCheck className="h-3.5 w-3.5" />
+                                Verify donor
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-zinc-500">N/A</span>
+                    )}
+                  </td>
+                  
+                  <td className="px-4 py-4 text-zinc-400 font-semibold">{user.communityFlags ?? 0}</td>
+                  
+                  <td className="px-4 py-4">
+                    <button
+                      type="button"
+                      onClick={() => void handleSetFlags(user)}
+                      className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold bg-gradient-to-r from-amber-500 to-orange-600 text-white transition hover:shadow-lg hover:scale-105 active:scale-95"
+                      title="Set community flags"
+                    >
+                      <Flag className="h-3.5 w-3.5" />
+                      Set flags
+                    </button>
                   </td>
                 </tr>
               ))
@@ -439,34 +520,38 @@ export default function AdminUsersPage() {
         </table>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <article className="rounded-2xl border border-white/10 bg-[#232630] p-5 shadow-[0_8px_22px_rgba(0,0,0,0.25)]">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="h-5 w-5 text-emerald-400" />
+      <div className="grid gap-5 lg:grid-cols-2 mt-6">
+        <article className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 p-6 shadow-[0_12px_30px_rgba(16,185,129,0.15)] backdrop-blur-sm hover:shadow-[0_16px_40px_rgba(16,185,129,0.2)] transition">
+          <div className="flex items-start gap-4">
+            <div className="rounded-lg bg-emerald-500/20 p-3">
+              <ShieldCheck className="h-6 w-6 text-emerald-400" />
+            </div>
             <div>
               <h2 className="text-lg font-semibold text-zinc-100">Verification checklist</h2>
-              <p className="text-sm text-zinc-400">Focus on users that are still pending account review.</p>
+              <p className="mt-1 text-sm text-zinc-400">Focus on users that are still pending account review.</p>
             </div>
           </div>
-          <ul className="mt-4 space-y-3 text-sm text-zinc-300">
-            <li className="flex items-center gap-2"><UserCheck className="h-4 w-4 text-emerald-400" /> Verify new users from the pending queue.</li>
-            <li className="flex items-center gap-2"><Users2 className="h-4 w-4 text-sky-400" /> Export the current list before taking moderation action.</li>
-            <li className="flex items-center gap-2"><UserX className="h-4 w-4 text-rose-400" /> Keep banned accounts separated from active review.</li>
+          <ul className="mt-5 space-y-3 text-sm text-zinc-300">
+            <li className="flex items-center gap-3"><div className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Verify new users from the pending queue.</li>
+            <li className="flex items-center gap-3"><div className="h-1.5 w-1.5 rounded-full bg-sky-400" /> Export the current list before taking moderation action.</li>
+            <li className="flex items-center gap-3"><div className="h-1.5 w-1.5 rounded-full bg-rose-400" /> Keep banned accounts separated from active review.</li>
           </ul>
         </article>
 
-        <article className="rounded-2xl border border-white/10 bg-[#232630] p-5 shadow-[0_8px_22px_rgba(0,0,0,0.25)]">
-          <div className="flex items-center gap-3">
-            <FileDown className="h-5 w-5 text-zinc-200" />
+        <article className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-amber-600/5 p-6 shadow-[0_12px_30px_rgba(245,158,11,0.15)] backdrop-blur-sm hover:shadow-[0_16px_40px_rgba(245,158,11,0.2)] transition">
+          <div className="flex items-start gap-4">
+            <div className="rounded-lg bg-amber-500/20 p-3">
+              <FileDown className="h-6 w-6 text-amber-400" />
+            </div>
             <div>
               <h2 className="text-lg font-semibold text-zinc-100">Report generation</h2>
-              <p className="text-sm text-zinc-400">Create a CSV snapshot of the visible users in one click.</p>
+              <p className="mt-1 text-sm text-zinc-400">Create a CSV snapshot of the visible users in one click.</p>
             </div>
           </div>
           <button
             type="button"
             onClick={handleExportUsers}
-            className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-zinc-100 transition hover:bg-white/15"
+            className="mt-5 inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-orange-500/10 px-5 py-2.5 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/20 hover:border-amber-500/50 hover:shadow-lg hover:shadow-amber-500/20"
           >
             <FileDown className="h-4 w-4" />
             Export visible users
@@ -476,19 +561,19 @@ export default function AdminUsersPage() {
 
       {selectedUser && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-md sm:items-center"
           role="dialog"
           aria-modal="true"
           aria-label="User details"
           onClick={closeDetailsModal}
         >
           <div
-            className="my-4 flex w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#171a20] shadow-[0_24px_80px_rgba(0,0,0,0.55)] max-h-[90vh]"
+            className="my-4 flex w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-b from-[#1f222a] to-[#171a20] shadow-[0_32px_80px_rgba(0,0,0,0.65)] max-h-[90vh]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="shrink-0 flex items-start justify-between gap-4 border-b border-white/10 px-6 py-5">
-              <div className="flex items-start gap-4">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/5 text-lg font-semibold text-zinc-100">
+            <div className="shrink-0 flex items-start justify-between gap-4 border-b border-white/10 bg-gradient-to-r from-[#232630] to-[#1f222a] px-8 py-6">
+              <div className="flex items-start gap-5">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/20 to-orange-500/10 text-lg font-bold text-amber-200">
                   {selectedUserDetails?.avatar ? (
                     <img
                       src={selectedUserDetails.avatar}
@@ -501,7 +586,7 @@ export default function AdminUsersPage() {
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-[3px] text-amber-300 font-semibold">User profile</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-zinc-100">
+                  <h2 className="mt-2 text-2xl font-bold text-zinc-100">
                     {selectedUserDetails?.name ?? selectedUser.name}
                   </h2>
                   <p className="mt-1 text-sm text-zinc-400">
@@ -512,84 +597,84 @@ export default function AdminUsersPage() {
               <button
                 type="button"
                 onClick={closeDetailsModal}
-                className="rounded-full border border-white/10 bg-white/5 p-2 text-zinc-300 transition hover:bg-white/10 hover:text-white"
+                className="rounded-full border border-white/10 bg-white/5 p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white hover:border-white/20"
                 aria-label="Close user details"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 pb-8">
+            <div className="min-h-0 flex-1 overflow-y-auto px-8 py-8 pb-8">
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Role</p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
+                <div className="rounded-xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-indigo-600/5 p-4">
+                  <p className="text-xs uppercase tracking-[2px] text-indigo-300 font-semibold">Role</p>
+                  <p className="mt-3 text-sm font-bold text-indigo-100">
                     {selectedUserDetails?.role ?? selectedUser.role}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Verified</p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
+                <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 p-4">
+                  <p className="text-xs uppercase tracking-[2px] text-emerald-300 font-semibold">Verified</p>
+                  <p className="mt-3 text-sm font-bold text-emerald-100">
                     {selectedUserDetails?.isVerified ? "Yes" : "No"}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Active</p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
+                <div className="rounded-xl border border-sky-500/30 bg-gradient-to-br from-sky-500/10 to-sky-600/5 p-4">
+                  <p className="text-xs uppercase tracking-[2px] text-sky-300 font-semibold">Active</p>
+                  <p className="mt-3 text-sm font-bold text-sky-100">
                     {selectedUserDetails?.isActive ? "Active" : "Banned"}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Blood type</p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
+                <div className="rounded-xl border border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-orange-600/5 p-4">
+                  <p className="text-xs uppercase tracking-[2px] text-orange-300 font-semibold">Blood type</p>
+                  <p className="mt-3 text-sm font-bold text-orange-100">
                     {renderDetailValue(selectedUserDetails?.bloodType)}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Phone</p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
+                <div className="rounded-xl border border-rose-500/30 bg-gradient-to-br from-rose-500/10 to-rose-600/5 p-4">
+                  <p className="text-xs uppercase tracking-[2px] text-rose-300 font-semibold">Phone</p>
+                  <p className="mt-3 text-sm font-bold text-rose-100">
                     {renderDetailValue(selectedUserDetails?.phone)}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Community flags</p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
+                <div className="rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-amber-600/5 p-4">
+                  <p className="text-xs uppercase tracking-[2px] text-amber-300 font-semibold">Community flags</p>
+                  <p className="mt-3 text-sm font-bold text-amber-100">
                     {selectedUserDetails?.communityFlags ?? 0}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Created at</p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
+                <div className="rounded-xl border border-white/15 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-semibold">Created at</p>
+                  <p className="mt-3 text-sm font-semibold text-zinc-100">
                     {formatAdminDate(selectedUserDetails?.createdAt)}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Last update</p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
+                <div className="rounded-xl border border-white/15 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-semibold">Last update</p>
+                  <p className="mt-3 text-sm font-semibold text-zinc-100">
                     {formatAdminDate(selectedUserDetails?.updatedAt)}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Location</p>
-                  <p className="mt-2 text-sm font-semibold text-zinc-100">
+                <div className="rounded-xl border border-white/15 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-semibold">Location</p>
+                  <p className="mt-3 text-sm font-semibold text-zinc-100">
                     {"N/A"}
                   </p>
                 </div>
               </div>
 
               {detailsLoading ? (
-                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-300">
+                <div className="mt-6 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-300">
                   Loading user details...
                 </div>
               ) : null}
 
               {selectedUserRole === "donor" ? (
-                <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/5 p-5">
-                  <h3 className="text-lg font-semibold text-zinc-100">Donor activity</h3>
-                  <div className="mt-4 grid gap-4 md:grid-cols-3">
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Donor verified</p>
-                      <p className="mt-2 text-sm font-semibold text-zinc-100">
+                <div className="mt-6 rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 p-6">
+                  <h3 className="text-lg font-bold text-emerald-100">Donor activity</h3>
+                  <div className="mt-5 grid gap-4 md:grid-cols-3">
+                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+                      <p className="text-xs uppercase tracking-[2px] text-emerald-300 font-semibold">Donor verified</p>
+                      <p className="mt-3 text-sm font-bold text-emerald-100">
                         {selectedUserDetails?.donorInfo
                           ? selectedUserDetails.donorInfo.isVerified
                             ? "Yes"
@@ -597,39 +682,39 @@ export default function AdminUsersPage() {
                           : "N/A"}
                       </p>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Total donations</p>
-                      <p className="mt-2 text-sm font-semibold text-zinc-100">
+                    <div className="rounded-xl border border-sky-500/30 bg-sky-500/5 p-4">
+                      <p className="text-xs uppercase tracking-[2px] text-sky-300 font-semibold">Total donations</p>
+                      <p className="mt-3 text-sm font-bold text-sky-100">
                         {selectedUserDetails?.donorInfo?.totalDonations ?? 0}
                       </p>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Last donation</p>
-                      <p className="mt-2 text-sm font-semibold text-zinc-100">
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+                      <p className="text-xs uppercase tracking-[2px] text-amber-300 font-semibold">Last donation</p>
+                      <p className="mt-3 text-sm font-bold text-amber-100">
                         {formatAdminDate(selectedUserDetails?.donorInfo?.lastDonationDate ?? undefined)}
                       </p>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Last units</p>
-                      <p className="mt-2 text-sm font-semibold text-zinc-100">
+                    <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-4">
+                      <p className="text-xs uppercase tracking-[2px] text-rose-300 font-semibold">Last units</p>
+                      <p className="mt-3 text-sm font-bold text-rose-100">
                         {renderDetailValue(selectedUserDetails?.donorInfo?.lastDonationUnits)}
                       </p>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium">Next available</p>
-                      <p className="mt-2 text-sm font-semibold text-zinc-100">
+                    <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-4">
+                      <p className="text-xs uppercase tracking-[2px] text-indigo-300 font-semibold">Next available</p>
+                      <p className="mt-3 text-sm font-bold text-indigo-100">
                         {formatAdminDate(selectedUserNextEligibleDate ?? undefined)}
                       </p>
                     </div>
                   </div>
-                  <p className="mt-3 text-xs text-zinc-400">
+                  <p className="mt-4 text-xs text-emerald-300/70">
                     Based on the last donation date and the current eligibility window.
                   </p>
                 </div>
               ) : (
-                <div className="mt-6 rounded-2xl border border-sky-400/20 bg-sky-500/5 p-5">
-                  <h3 className="text-lg font-semibold text-zinc-100">User activity</h3>
-                  <p className="mt-2 text-sm text-zinc-300">
+                <div className="mt-6 rounded-2xl border border-sky-500/30 bg-gradient-to-br from-sky-500/10 to-sky-600/5 p-6">
+                  <h3 className="text-lg font-bold text-sky-100">User activity</h3>
+                  <p className="mt-2 text-sm text-sky-200">
                     No donor activity available for this role.
                   </p>
                 </div>

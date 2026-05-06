@@ -9,14 +9,18 @@ import {
   type BloodRequest,
   type LocationDetails,
 } from "../service/Requestblooddata";
+import { createBloodRequest } from "../service/requestBloodApi";
+import toast from "react-hot-toast";
 
 // ── Reverse geocode via OpenStreetMap Nominatim ────────
 const reverseGeocode = async (
   lat: number,
-  lon: number
+  lon: number,
 ): Promise<{ displayName: string; details: LocationDetails }> => {
   const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`;
-  const res  = await fetch(url, { headers: { "User-Agent": "BloodConnect/1.0" } });
+  const res = await fetch(url, {
+    headers: { "User-Agent": "BloodConnect/1.0" },
+  });
   const data = await res.json();
   const addr = data.address;
   const displayName =
@@ -25,23 +29,35 @@ const reverseGeocode = async (
 };
 
 const RequestBloodForm = () => {
-  const [values,         setValues]         = useState<BloodRequest>(DEFAULT_FORM);
-  const [errors,         setErrors]         = useState<Record<string, string>>({});
-  const [loading,        setLoading]        = useState(false);
-  const [submitted,      setSubmitted]      = useState(false);
+  const [values, setValues] = useState<BloodRequest>(DEFAULT_FORM);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
-  const [locationHelper,  setLocationHelper]  = useState("Click 📍 to auto-detect your location");
+  const [locationHelper, setLocationHelper] = useState(
+    "Click 📍 to auto-detect your location",
+  );
 
   // ── Handlers ───────────────────────────────────────
   const handleChange = (name: string, value: any) => {
     setValues((prev) => ({ ...prev, [name]: value }));
     // clear error on change
     if (errors[name]) {
-      setErrors((prev) => { const e = { ...prev }; delete e[name]; return e; });
+      setErrors((prev) => {
+        const e = { ...prev };
+        delete e[name];
+        return e;
+      });
     }
     // if user manually edits location, clear coordinates
     if (name === "location") {
-      setValues((prev) => ({ ...prev, location: value, latitude: "", longitude: "", locationDetails: null }));
+      setValues((prev) => ({
+        ...prev,
+        location: value,
+        latitude: "",
+        longitude: "",
+        locationDetails: null,
+      }));
       setLocationHelper("Click 📍 to auto-detect your location");
     }
   };
@@ -59,19 +75,28 @@ const RequestBloodForm = () => {
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          const { displayName, details } = await reverseGeocode(latitude, longitude);
+          const { displayName, details } = await reverseGeocode(
+            latitude,
+            longitude,
+          );
           setValues((prev) => ({
             ...prev,
-            location:        displayName,
-            latitude:        latitude.toString(),
-            longitude:       longitude.toString(),
+            location: displayName,
+            latitude: latitude.toString(),
+            longitude: longitude.toString(),
             locationDetails: details,
           }));
           // clear location error if any
-          setErrors((prev) => { const e = { ...prev }; delete e.location; return e; });
+          setErrors((prev) => {
+            const e = { ...prev };
+            delete e.location;
+            return e;
+          });
           setLocationHelper("✓ Location detected automatically");
         } catch {
-          setLocationHelper("Could not detect location. Please enter manually.");
+          setLocationHelper(
+            "Could not detect location. Please enter manually.",
+          );
         } finally {
           setLocationLoading(false);
         }
@@ -79,7 +104,7 @@ const RequestBloodForm = () => {
       () => {
         setLocationHelper("Permission denied. Please enter location manually.");
         setLocationLoading(false);
-      }
+      },
     );
   };
 
@@ -93,10 +118,11 @@ const RequestBloodForm = () => {
       disabled={locationLoading}
       className="!p-1 h-7 w-7"
     >
-      {locationLoading
-        ? <Icons.Loading className="!w-4 !h-4 animate-spin text-primary" />
-        : <Icons.Location className="!w-4 !h-4 text-primary" />
-      }
+      {locationLoading ? (
+        <Icons.Loading className="!w-4 !h-4 animate-spin text-primary" />
+      ) : (
+        <Icons.Location className="!w-4 !h-4 text-primary" />
+      )}
     </CustomButton>
   );
 
@@ -108,17 +134,71 @@ const RequestBloodForm = () => {
       setErrors(validationErrors);
       return;
     }
-    console.log(values)
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setSubmitted(true);
-    }, 1500);
+    (async () => {
+      try {
+        const payload = {
+          patientName: values.patientName,
+          bloodType: values.bloodType,
+          units: values.units,
+          hospital: values.hospital,
+          location: values.location,
+          latitude: values.latitude || undefined,
+          longitude: values.longitude || undefined,
+          phone: values.phone,
+          urgency: values.urgency,
+          neededBy: values.neededBy,
+          notes: values.notes || undefined,
+          agreeTerms: values.agreeTerms || false,
+        };
+
+        await createBloodRequest(payload);
+        setSubmitted(true);
+      } catch (err: any) {
+        console.error("Failed to post blood request:", err);
+
+        // Prefer structured API error if available
+        const apiData = err?.response?.data;
+        if (apiData) {
+          // Show top-level message via toast
+          if (apiData.message) toast.error(apiData.message);
+
+          // If server returned field errors like "agreeTerms: You must agree to the terms"
+          if (Array.isArray(apiData.errors) && apiData.errors.length > 0) {
+            const fieldErrors: Record<string, string> = {};
+            apiData.errors.forEach((e: string) => {
+              const parts = String(e).split(":");
+              if (parts.length >= 2) {
+                const key = parts.shift()?.trim() || "form";
+                const msg = parts.join(":").trim();
+                fieldErrors[key] = msg;
+              } else {
+                // fallback to generic form error
+                fieldErrors.form = String(e);
+              }
+            });
+            setErrors((prev) => ({ ...prev, ...fieldErrors }));
+            return;
+          }
+
+          // fallback: show message and set generic form error
+          setErrors((prev) => ({ ...prev, form: apiData.message || "Failed to post request" }));
+          return;
+        }
+
+        // Generic error fallback
+        const msg = err?.message || "Failed to post request";
+        toast.error(msg);
+        setErrors((prev) => ({ ...prev, form: msg }));
+      } finally {
+        setLoading(false);
+      }
+    })();
   };
 
   // ── Dynamic fields — inject location helperText ────
   const dynamicFields = requestFields.map((f) =>
-    f.name === "location" ? { ...f, helperText: locationHelper } : f
+    f.name === "location" ? { ...f, helperText: locationHelper } : f,
   );
 
   // ── Success state ──────────────────────────────────
@@ -133,13 +213,15 @@ const RequestBloodForm = () => {
         </h2>
         <p className="text-gray-500 text-sm mb-2 max-w-sm mx-auto">
           Your blood request for{" "}
-          <span className="font-bold text-primary">{values.bloodType}</span> has been
-          posted. Nearby donors are being notified.
+          <span className="font-bold text-primary">{values.bloodType}</span> has
+          been posted. Nearby donors are being notified.
         </p>
         <p className="text-gray-400 text-xs mb-8">
-          Patient: <span className="font-semibold text-dark">{values.patientName}</span>
+          Patient:{" "}
+          <span className="font-semibold text-dark">{values.patientName}</span>
           {" · "}
-          Hospital: <span className="font-semibold text-dark">{values.hospital}</span>
+          Hospital:{" "}
+          <span className="font-semibold text-dark">{values.hospital}</span>
           {values.latitude && (
             <>
               {" · "}
@@ -152,7 +234,11 @@ const RequestBloodForm = () => {
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button
-            onClick={() => { setValues(DEFAULT_FORM); setSubmitted(false); setLocationHelper("Click 📍 to auto-detect your location"); }}
+            onClick={() => {
+              setValues(DEFAULT_FORM);
+              setSubmitted(false);
+              setLocationHelper("Click 📍 to auto-detect your location");
+            }}
             className="btn-outline text-sm"
           >
             Post Another Request
@@ -168,7 +254,6 @@ const RequestBloodForm = () => {
   // ── Form ───────────────────────────────────────────
   return (
     <div className="bg-white rounded-xs shadow-md p-5 sm:p-7">
-
       {/* Card header */}
       <div className="flex items-center gap-3 mb-6 pb-5 border-b border-gray-100">
         <div className="w-10 h-10 rounded-xs bg-primary/10 center-flex shrink-0">
@@ -179,8 +264,11 @@ const RequestBloodForm = () => {
             Blood Request Details
           </h2>
           <p className="text-gray-400 text-xs mt-0.5">
-            All fields marked <span className="text-primary font-bold">*</span> are required
-            · <span className="text-primary text-xxs">📍 Location auto-detect available</span>
+            All fields marked <span className="text-primary font-bold">*</span>{" "}
+            are required ·{" "}
+            <span className="text-primary text-xxs">
+              📍 Location auto-detect available
+            </span>
           </p>
         </div>
       </div>

@@ -5,65 +5,91 @@ import MainContainer from "../../../shared/main-container/MainContainer";
 import SectionContainer from "../../../shared/section-container/SectionContainer";
 import SectionHeading from "../../../shared/section-heading/SectionHeading";
 
-const requests = [
-  {
-    bloodGroup: "B−",
-    patientName: "Md. Salim",
-    hospital: "Dhaka Medical College",
-    location: "Dhaka",
-    units: 2,
-    postedAt: "10 min ago",
-    urgent: true,
-  },
-  {
-    bloodGroup: "O+",
-    patientName: "Fatema Khanam",
-    hospital: "Square Hospital",
-    location: "Dhaka",
-    units: 1,
-    postedAt: "35 min ago",
-    urgent: false,
-  },
-  {
-    bloodGroup: "A−",
-    patientName: "Rakibul Islam",
-    hospital: "BIRDEM Hospital",
-    location: "Dhaka",
-    units: 3,
-    postedAt: "1 hr ago",
-    urgent: true,
-  },
-  {
-    bloodGroup: "AB+",
-    patientName: "Nazia Sultana",
-    hospital: "Apollo Hospital",
-    location: "Dhaka",
-    units: 1,
-    postedAt: "2 hrs ago",
-    urgent: false,
-  },
-  {
-    bloodGroup: "O−",
-    patientName: "Kamal Hossain",
-    hospital: "Enam Medical College",
-    location: "Savar",
-    units: 2,
-    postedAt: "3 hrs ago",
-    urgent: true,
-  },
-  {
-    bloodGroup: "B+",
-    patientName: "Sufia Begum",
-    hospital: "National Heart Foundation",
-    location: "Dhaka",
-    units: 2,
-    postedAt: "4 hrs ago",
-    urgent: false,
-  },
-];
+interface BloodRequest {
+  _id?: string;
+  patientName?: string;
+  bloodType?: string;
+  patientInfo?: {
+    name?: string;
+    address?: string;
+  };
+  units?: number;
+  createdAt?: string;
+  status?: string;
+  hospital?: string;
+  requestedBy?: {
+    name?: string;
+    type?: string;
+  } | string;
+  location?: {
+    city?: string;
+    displayName?: string;
+  } | string;
+  urgency?: string;
+}
 
-const LatestBloodRequests = () => {
-  const nevigate = useNavigate()
+interface LatestBloodRequestsProps {
+  requests?: BloodRequest[];
+  loading?: boolean;
+  error?: string;
+}
+
+// Helper function to calculate relative time
+const getRelativeTime = (dateString?: string): string => {
+  if (!dateString) return "Unknown time";
+  
+  const now = new Date();
+  const createdDate = new Date(dateString);
+  const diffMs = now.getTime() - createdDate.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins} min ago`;
+  if (diffHours < 24) return `${diffHours} hr${diffHours > 1 ? "s" : ""} ago`;
+  return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+};
+
+// Helper function to check if request is urgent (created within 60 minutes)
+const isUrgent = (createdAt?: string): boolean => {
+  if (!createdAt) return false;
+  
+  const now = new Date();
+  const createdDate = new Date(createdAt);
+  const diffMs = now.getTime() - createdDate.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  
+  return diffMins <= 60;
+};
+
+const normalizeRequest = (req: BloodRequest) => {
+  const requestedByName = typeof req.requestedBy === "string" ? undefined : req.requestedBy?.name;
+  const locationText = typeof req.location === "string"
+    ? req.location
+    : req.location?.displayName || req.location?.city;
+  const patientName = req.patientInfo?.name || req.patientName || requestedByName || "Unknown";
+  const bloodType = req.bloodType || "Unknown";
+  const hospital = req.hospital || requestedByName || "Blood request";
+  const location = locationText || req.patientInfo?.address || "Location unavailable";
+  const units = req.units || 1;
+  const postedAt = getRelativeTime(req.createdAt);
+  const urgency = req.urgency || (isUrgent(req.createdAt) ? "urgent" : null);
+
+  return {
+    patientName,
+    bloodType,
+    hospital,
+    location,
+    units,
+    postedAt,
+    urgency,
+  };
+};
+
+const LatestBloodRequests = ({ requests = [], loading = false, error }: LatestBloodRequestsProps) => {
+  const navigate = useNavigate();
+  const displayRequests = requests && requests.length > 0 ? requests : [];
   return (
     <SectionContainer>
       <MainContainer>
@@ -85,66 +111,107 @@ const LatestBloodRequests = () => {
           </a>
         </div>
 
-        {/* Request cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          {requests.map((req) => (
-            <div
-              key={req.patientName}
-              className={`donor-card border-2 transition-all duration-300
-                ${req.urgent ? "border-red-200" : "border-gray-100"}`}
-            >
-              {/* Top row */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  {/* Blood group box */}
-                  <div className="w-12 h-12 rounded-xl bg-primary center-flex text-white font-black text-sm shrink-0">
-                    {req.bloodGroup}
+        {/* Error State */}
+        {error && (
+          <div style={{ 
+            padding: "1rem", 
+            marginBottom: "1rem", 
+            background: "#fee", 
+            border: "1px solid #c0392b", 
+            borderRadius: "0.5rem",
+            color: "#c0392b",
+            fontSize: "0.875rem"
+          }}>
+            {error}
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading ? (
+          <div style={{ 
+            padding: "2rem", 
+            textAlign: "center", 
+            color: "#888" 
+          }}>
+            Loading blood requests...
+          </div>
+        ) : (
+          <>
+            {/* Request cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+              {displayRequests?.map((req) => {
+                const normalized = normalizeRequest(req);
+
+                return (
+                  <div
+                    key={req._id || normalized.patientName}
+                    className={`donor-card border-2 transition-all duration-300 ${
+                      normalized.urgency?.toLowerCase() === "critical"
+                        ? "border-red-400 bg-red-50"
+                        : normalized.urgency
+                        ? "border-orange-200"
+                        : "border-gray-100"
+                    }`}
+                  >
+                    {/* Top row */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        {/* Blood group box */}
+                        <div className="w-12 h-12 rounded-xl bg-primary center-flex text-white font-black text-sm shrink-0">
+                          {normalized.bloodType}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-dark text-sm leading-tight">
+                            {normalized.patientName}
+                          </h3>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {normalized.hospital}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Urgency badge */}
+                      {normalized.urgency && (
+                        <span className={`shrink-0 flex items-center gap-1 text-xxs font-black uppercase tracking-wide px-2 py-1 rounded-full ${
+                          normalized.urgency.toLowerCase() === "critical"
+                            ? "bg-red-200 text-red-700"
+                            : "bg-orange-100 text-orange-600"
+                        }`}>
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75" />
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current" />
+                          </span>
+                          {normalized.urgency}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Meta */}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400 mb-4">
+                      <span className="flex items-center gap-1">
+                        <Icons.LocationPin className="w-3 h-3 text-primary" />
+                        {normalized.location}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Icons.Blood className="w-3 h-3 text-primary" />
+                        {normalized.units} unit{normalized.units > 1 ? "s" : ""}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Icons.Clock className="w-3 h-3" />
+                        {normalized.postedAt}
+                      </span>
+                    </div>
+
+                    {/* CTA */}
+                    <CustomButton variant="primary" size="sm" radius="lg" fullWidth>
+                      I Can Donate
+                    </CustomButton>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-dark text-sm leading-tight">
-                      {req.patientName}
-                    </h3>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {req.hospital}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Urgent badge */}
-                {req.urgent && (
-                  <span className="shrink-0 flex items-center gap-1 bg-red-100 text-primary text-xxs font-black uppercase tracking-wide px-2 py-1 rounded-full">
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
-                    </span>
-                    Urgent
-                  </span>
-                )}
-              </div>
-
-              {/* Meta */}
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400 mb-4">
-                <span className="flex items-center gap-1">
-                  <Icons.LocationPin className="w-3 h-3 text-primary" />
-                  {req.location}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Icons.Blood className="w-3 h-3 text-primary" />
-                  {req.units} unit{req.units > 1 ? "s" : ""}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Icons.Clock className="w-3 h-3" />
-                  {req.postedAt}
-                </span>
-              </div>
-
-              {/* CTA */}
-              <CustomButton variant="primary" size="sm" radius="lg" fullWidth>
-                I Can Donate
-              </CustomButton>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          </>
+        )}
 
         {/* Post Request banner */}
         <div className="mt-10 p-6 sm:p-8 rounded-xl border-2 border-dashed border-red-200 bg-red-50 text-center">
@@ -154,7 +221,7 @@ const LatestBloodRequests = () => {
           <p className="text-gray-500 text-sm mb-5">
             Post a request and reach hundreds of nearby donors instantly.
           </p>
-          <CustomButton onClick={ () => nevigate('/request')} variant="primary" size="md" radius="full">
+          <CustomButton onClick={() => navigate('/request')} variant="primary" size="md" radius="full">
             Post a Blood Request
           </CustomButton>
         </div>
