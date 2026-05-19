@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useSearchParams } from "react-router-dom";
 import MainContainer from "../../../shared/main-container/MainContainer";
 import FindDonorHero from "../ui/FindDonorHero";
 import DonorSearchBar from "../ui/DonorSearchBar";
@@ -26,6 +27,7 @@ const PAGE_LIMIT = 10;
 
 const FindDonorPage = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const [searchParams] = useSearchParams();
   const authLoading = useSelector((state: RootState) => state.user.isLoading);
   const reduxUser = useSelector((state: RootState) => state.user.user);
   const donorsState = useSelector((state: RootState) => state.donors);
@@ -38,7 +40,19 @@ const FindDonorPage = () => {
     if (filters.bloodType !== "All") return filters.bloodType;
     return "";
   }, [filters.bloodType]);
-  console.log("[login user]: ", reduxUser)
+
+  useEffect(() => {
+    const bloodTypeFromQuery = searchParams.get("bloodType");
+    const distanceFromQuery = searchParams.get("distance");
+    const locationFromQuery = searchParams.get("location");
+
+    setFilters((prev) => ({
+      ...prev,
+      bloodType: bloodTypeFromQuery && bloodTypeFromQuery !== "All" ? bloodTypeFromQuery : prev.bloodType,
+      distance: distanceFromQuery ? Number(distanceFromQuery) || prev.distance : prev.distance,
+      location: locationFromQuery ?? prev.location,
+    }));
+  }, [searchParams]);
 
   const coords = reduxUser?.location?.coordinates;
 

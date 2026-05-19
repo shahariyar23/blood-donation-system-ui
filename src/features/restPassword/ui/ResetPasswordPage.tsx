@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Form, { type Field } from "../../../shared/components/Form";
 import { resetPasswordApi } from "../service/resetPasswrod";
+import { hospitalResetPasswordApi } from "../../hospital/service/hospitalAuthService";
 
 // ── Types ──────────────────────────────────────────────────
 interface ResetFormValues {
@@ -138,7 +139,10 @@ const SuccessIllustration: React.FC = () => (
 );
 
 // ── Expired token state ────────────────────────────────────
-const ExpiredState: React.FC = () => (
+const ExpiredState: React.FC<{ loginPath?: string; forgotPath?: string }> = ({
+  loginPath = "/login",
+  forgotPath = "/forgot-password",
+}) => (
   <div className="text-center">
     <div className="relative w-24 h-24 mx-auto mb-6">
       <div className="absolute inset-0 rounded-full bg-orange-50" />
@@ -183,14 +187,14 @@ const ExpiredState: React.FC = () => (
 
     <div className="mt-8 flex flex-col gap-3">
       <Link
-        to="/forgot-password"
+        to={forgotPath}
         className="w-full py-3 rounded-xs bg-primary text-white text-sm font-semibold text-center
           hover:bg-red-700 transition-colors duration-200"
       >
         Request a new link
       </Link>
       <Link
-        to="/login"
+        to={loginPath}
         className="w-full py-3 rounded-xs border border-gray-200 text-dark text-sm font-semibold text-center
           hover:bg-gray-50 transition-colors duration-200"
       >
@@ -201,10 +205,20 @@ const ExpiredState: React.FC = () => (
 );
 
 // ── Main Component ─────────────────────────────────────────
-const ResetPasswordPage: React.FC = () => {
+interface ResetPasswordPageProps {
+  accountType?: "user" | "hospital";
+}
+
+const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
+  accountType = "user",
+}) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") ?? "";
+  const email = searchParams.get("email") ?? "";
+  const isHospitalReset = accountType === "hospital";
+  const loginPath = isHospitalReset ? "/hospital/login" : "/login";
+  const forgotPath = isHospitalReset ? "/hospital/login" : "/forgot-password";
 
   const [step, setStep] = useState<"form" | "success" | "expired">("form");
   const [values, setValues] = useState<ResetFormValues>({
@@ -227,17 +241,17 @@ const ResetPasswordPage: React.FC = () => {
   useEffect(() => {
     if (step !== "success") return;
     if (redirectIn <= 0) {
-      navigate("/login");
+      navigate(loginPath);
       return;
     }
     const t = setTimeout(() => setRedirectIn((c) => c - 1), 1000);
     return () => clearTimeout(t);
-  }, [step, redirectIn, navigate]);
+  }, [step, redirectIn, navigate, loginPath]);
 
   // Detect missing token
   useEffect(() => {
-    if (!token) setStep("expired");
-  }, [token]);
+    if (!token || (isHospitalReset && !email)) setStep("expired");
+  }, [token, email, isHospitalReset]);
 
   // ── Derived password checks ────────────────────────────
   const pw = values.password;
@@ -402,7 +416,16 @@ const ResetPasswordPage: React.FC = () => {
     setApiError("");
 
     try {
-      await resetPasswordApi(token, values.password);
+      if (isHospitalReset) {
+        await hospitalResetPasswordApi({
+          email,
+          resetToken: token,
+          newPassword: values.password,
+          confirmPassword: values.confirmPassword,
+        });
+      } else {
+        await resetPasswordApi(token, values.password);
+      }
       setStep("success");
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? "";
@@ -483,7 +506,7 @@ const ResetPasswordPage: React.FC = () => {
             </h1>
 
             <p className="text-white/60 text-base leading-relaxed max-w-xs">
-              Choose a strong password to keep your donor account secure and
+              Choose a strong password to keep your {isHospitalReset ? "hospital" : "donor"} account secure and
               your data protected.
             </p>
 
@@ -550,7 +573,9 @@ const ResetPasswordPage: React.FC = () => {
 
         <div className="w-full max-w-[420px]">
           {/* ── EXPIRED STATE ── */}
-          {step === "expired" && <ExpiredState />}
+          {step === "expired" && (
+            <ExpiredState loginPath={loginPath} forgotPath={forgotPath} />
+          )}
 
           {/* ── FORM STATE ── */}
           {step === "form" && (
@@ -559,7 +584,7 @@ const ResetPasswordPage: React.FC = () => {
             >
               {/* Back link */}
               <Link
-                to="/login"
+                to={loginPath}
                 className="inline-flex items-center gap-1.5 text-sm text-dark/40 hover:text-dark/70 transition-colors mb-8 group"
               >
                 <svg
@@ -810,7 +835,7 @@ const ResetPasswordPage: React.FC = () => {
               </div>
 
               <Link
-                to="/login"
+                to={loginPath}
                 className="mt-6 w-full py-3 rounded-xs bg-primary text-white text-sm font-semibold
                   flex items-center justify-center gap-2 hover:bg-red-700 transition-colors duration-200"
               >

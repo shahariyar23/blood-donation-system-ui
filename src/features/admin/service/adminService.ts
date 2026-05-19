@@ -9,6 +9,8 @@ import type {
   AdminUsersResponse,
   ApiEnvelope,
   AdminBloodRequestsResponse,
+  AdminBloodRequest,
+  AdminBloodBankSettings,
   AdminDonationsResponse,
   AdminVerificationsResponse,
   AdminSettings,
@@ -130,7 +132,7 @@ export const unverifyAdminHospitalApi = async (id: string) => {
 };
 
 export const getAdminUserDetailsApi = async (id: string) => {
-  const res = await Api.get<ApiEnvelope<AdminUserDetails>>(`/admin/users/${id}`);
+  const res = await Api.get<ApiEnvelope<AdminUserDetails>>(`/users/${id}`);
   return res.data.data;
 };
 
@@ -150,18 +152,31 @@ export const updateAdminUserStatusApi = async (id: string, isActive: boolean) =>
   return res.data;
 };
 
-export const verifyAdminDonorApi = async (id: string) => {
-  const res = await Api.patch<ApiEnvelope<{ id: string; isDonorVerified: boolean }>>(
+export type AdminVerificationStatus = "verified" | "unverified" | "blocked";
+
+export interface AdminVerificationPayload {
+  status?: AdminVerificationStatus;
+  isVerified?: boolean;
+}
+
+export const verifyAdminDonorApi = async (
+  id: string,
+  payload: AdminVerificationPayload
+) => {
+  const res = await Api.patch<ApiEnvelope<{ id: string; isVerifyDonor: boolean }>>(
     `/admin/users/${id}/verify-donor`,
-    {}
+    payload
   );
   return res.data;
 };
 
-export const verifyAdminUserApi = async (id: string) => {
-  const res = await Api.patch<ApiEnvelope<{ id: string; isVerified: boolean }>>(
+export const verifyAdminUserApi = async (
+  id: string,
+  payload: AdminVerificationPayload
+) => {
+  const res = await Api.patch<ApiEnvelope<{ id: string; isVerified: boolean; isActive?: boolean }>>(
     `/admin/users/${id}/verify-user`,
-    {}
+    payload
   );
   return res.data;
 };
@@ -195,6 +210,28 @@ export const getAdminBloodRequestsApi = async (query: AdminBloodRequestsQuery) =
   const res = await Api.get<ApiEnvelope<AdminBloodRequestsResponse>>(
     "/admin/blood-requests",
     { params: query }
+  );
+  return res.data.data;
+};
+
+export const getAdminBloodRequestDetailsApi = async (id: string) => {
+  const res = await Api.get<ApiEnvelope<AdminBloodRequest>>(`/admin/blood-requests/${id}`);
+  return res.data.data;
+};
+
+export const getAdminBloodBankSettingsApi = async () => {
+  const res = await Api.get<ApiEnvelope<AdminBloodBankSettings>>(
+    "/blood-banks/admin/settings"
+  );
+  return res.data.data;
+};
+
+export const updateAdminBloodBankSettingsApi = async (
+  payload: AdminBloodBankSettings
+) => {
+  const res = await Api.patch<ApiEnvelope<AdminBloodBankSettings>>(
+    "/blood-banks/admin/settings",
+    payload
   );
   return res.data.data;
 };

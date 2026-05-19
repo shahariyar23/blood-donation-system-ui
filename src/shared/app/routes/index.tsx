@@ -34,6 +34,8 @@ import ProfilePage from "../../../features/profile/component/ProfilePage";
 import MyDonationsPage from "../../../features/myDonation/ui/MyDonation";
 import SettingsPage from "../../../features/mySetting/ui/MySettingPage";
 import VerifyOtpPage from "../../../features/register/ui/VerifyOtpPage";
+import ViewAllRequestBlood from "../../../features/requestBlood/ui/ViewAllRequestBlood";
+import MyBloodRequestsPage from "../../../features/myBloodRequest/ui/MyBloodRequestsPage";
 
 export const router = createBrowserRouter([
   {
@@ -41,6 +43,14 @@ export const router = createBrowserRouter([
     element: (
       <GuestRoute>
         <HospitalLoginPage />
+      </GuestRoute>
+    ),
+  },
+  {
+    path: "/hospital/reset-password",
+    element: (
+      <GuestRoute>
+        <ResetPasswordPage accountType="hospital" />
       </GuestRoute>
     ),
   },
@@ -143,6 +153,14 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: "blood-bank",
+        element: (
+          <AdminRoute>
+            <AdminBloodBanksPage />
+          </AdminRoute>
+        ),
+      },
+      {
         path: "blood-banks",
         element: (
           <AdminRoute>
@@ -184,12 +202,12 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: "/view-all-request",
+        element: <ViewAllRequestBlood />,
+      },
+      {
         path: "/blood-banks",
-        element: (
-          <ProtectedRoute>
-            <BloodBankPage />
-          </ProtectedRoute>
-        ),
+        element: <BloodBankPage />,
       },
       {
         path: "/profile",
@@ -204,6 +222,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <MyDonationsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/my-blood-request",
+        element: (
+          <ProtectedRoute>
+            <MyBloodRequestsPage />
           </ProtectedRoute>
         ),
       },

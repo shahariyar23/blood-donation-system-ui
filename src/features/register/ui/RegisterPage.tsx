@@ -9,6 +9,7 @@ import { StepAccount } from "../container/StepAccount";
 import { StepHealth } from "../container/StrpHealth";
 import { StepLocation } from "../container/StepLocation";
 import { StepSocials } from "../container/StepSocial";
+import { transformLocationToLoginFormat, type NominatimResponse } from "../../../utilities/locationTransformer";
 
 
 
@@ -21,7 +22,7 @@ const STEPS = [
 
 const STEP_FIELD_ORDER: Record<number, string[]> = {
   1: ["name", "phone", "email", "avatar", "password", "confirmPassword"],
-  2: ["age", "weight", "dateOfBirth"],
+  2: ["weight", "dateOfBirth"],
   3: ["city", "state", "state_district", "county", "country", "postcode", "lat", "lng"],
   4: ["facebook", "instagram", "twitter"],
 };
@@ -137,9 +138,23 @@ export default function RegisterPage() {
     if (s === 2) {
       if (!form.bloodType) errs.bloodType = "Select your blood type";
       if (!form.gender) errs.gender = "Select your gender";
-      if (!form.age) errs.age = "Age is required";
-      else if (Number(form.age) < 18 || Number(form.age) > 65)
-        errs.age = "Must be 18–65";
+      if (!form.dateOfBirth) {
+        errs.dateOfBirth = "Date of birth is required";
+      } else {
+        const dob = new Date(form.dateOfBirth);
+        const today = new Date();
+        let calculatedAge = today.getFullYear() - dob.getFullYear();
+        const m = today.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+          calculatedAge--;
+        }
+        if (calculatedAge < 18) {
+          errs.dateOfBirth = `You must be at least 18 years old`;
+        } else if (calculatedAge > 65) {
+          errs.dateOfBirth = `You must be under 66 years old`;
+        }
+      }
+
       if (form.weight && Number(form.weight) < 50)
         errs.weight = "Minimum 50 kg";
     }
@@ -199,21 +214,24 @@ export default function RegisterPage() {
     const result = await getLocation();
     if (!result) return;
     const { latitude, longitude, displayName, details } = result;
+    
+    // Transform location using utility function
+    const nominatimResponse: NominatimResponse = {
+      display_name: displayName || "",
+      lat: latitude || 0,
+      lon: longitude || 0,
+      address: details,
+    };
+    const transformedLocation = transformLocationToLoginFormat(
+      nominatimResponse,
+      latitude,
+      longitude
+    );
+
     setForm((prev) => ({
       ...prev,
       location: {
-        ...prev.location,
-        displayName,
-        road: details.road || "",
-        quarter: details.quarter || "",
-        city: details.city || details.town || details.quarter || "",
-        county: details.county || "",
-        state_district: details.state_district || "",
-        state: details.state || "",
-        postcode: details.postcode || "",
-        country: details.country || "",
-        country_code: (details.country_code || "").toUpperCase(),
-        coordinates: { lat: latitude, lng: longitude },
+        ...transformedLocation,
       },
     }));
   };
@@ -227,25 +245,40 @@ export default function RegisterPage() {
 
     try {
       const locationResult = await getLocation();
-      const finalForm = locationResult
-        ? {
-            ...form,
-            location: {
-              ...form.location,
-              displayName: locationResult.displayName,
-              road: locationResult.details.road || "",
-              quarter: locationResult.details.quarter || "",
-              city: locationResult.details.city || locationResult.details.town || locationResult.details.village || "",
-              county: locationResult.details.county || "",
-              state_district: locationResult.details.state_district || "",
-              state: locationResult.details.state || "",
-              postcode: locationResult.details.postcode || "",
-              country: locationResult.details.country || "",
-              country_code: (locationResult.details.country_code || "").toUpperCase(),
-              coordinates: { lat: locationResult.latitude, lng: locationResult.longitude },
-            },
-          }
-        : form;
+      
+      // Transform location using utility function
+      let transformedLocation;
+      if (locationResult?.details) {
+        const nominatimResponse: NominatimResponse = {
+          display_name: locationResult.displayName || "",
+          lat: locationResult.latitude || 0,
+          lon: locationResult.longitude || 0,
+          address: locationResult.details,
+        };
+        transformedLocation = transformLocationToLoginFormat(
+          nominatimResponse,
+          locationResult.latitude,
+          locationResult.longitude
+        );
+      } else {
+        transformedLocation = form.location;
+      }
+
+      const finalForm = {
+        ...form,
+        location: transformedLocation,
+      };
+
+      if (finalForm.dateOfBirth) {
+        const dob = new Date(finalForm.dateOfBirth);
+        const today = new Date();
+        let calculatedAge = today.getFullYear() - dob.getFullYear();
+        const m = today.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+          calculatedAge--;
+        }
+        finalForm.age = String(calculatedAge);
+      }
 
       if (locationResult) {
         setForm(finalForm);

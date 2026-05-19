@@ -193,19 +193,22 @@ export default function AdminDonationsPage() {
     }
   };
 
-  const getAvailableActions = () => {
-    if (!selectedDonation) return [];
-    
-    const currentStatus = selectedDonation.status;
-    const allActions = [
-      { status: "request", label: "Request", color: "bg-blue-500" },
-      { status: "approved", label: "Approve", color: "bg-emerald-500" },
-      { status: "pending", label: "Pending", color: "bg-amber-500" },
-      { status: "rejected", label: "Reject", color: "bg-rose-500" },
-    ];
-    
-    return allActions.filter(action => action.status !== currentStatus);
-  };
+ const getAvailableActions = () => {
+  if (!selectedDonation) return [];
+  
+  const currentStatus = selectedDonation.status;
+
+  if (currentStatus === "request") return [];  // ← return early, no actions shown
+
+  const allActions = [
+    { status: "request", label: "Request", color: "bg-blue-500" },
+    { status: "approved", label: "Approve", color: "bg-emerald-500" },
+    { status: "pending", label: "Pending", color: "bg-amber-500" },
+    { status: "rejected", label: "Reject", color: "bg-rose-500" },
+  ];
+  
+  return allActions.filter(action => action.status !== currentStatus);
+};
 
   const getStatusLabel = (currentStatus: string) => {
     switch (currentStatus) {
@@ -498,52 +501,52 @@ export default function AdminDonationsPage() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                       <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium mb-1">Hospital Name</p>
-                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails.hospital.profile.hospitalName}</p>
+                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails?.hospital.profile?.hospitalName}</p>
                     </div>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                       <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium mb-1">Registration Number</p>
-                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails.hospital.profile.registrationNumber}</p>
+                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails?.hospital.profile?.registrationNumber}</p>
                     </div>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                       <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium mb-1">Email</p>
-                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails.hospital.profile.email}</p>
+                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails?.hospital.profile?.email}</p>
                     </div>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                       <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium mb-1">Phone</p>
-                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails.hospital.profile.phone}</p>
+                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails?.hospital.profile?.phone}</p>
                     </div>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                       <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium mb-1">License Number</p>
-                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails.hospital.profile.licenseNumber}</p>
+                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails?.hospital.profile?.licenseNumber}</p>
                     </div>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                       <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium mb-1">Verified</p>
-                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails.hospital.profile.isVerified ? "Yes" : "No"}</p>
+                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails?.hospital.profile?.isVerified ? "Yes" : "No"}</p>
                     </div>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                       <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium mb-1">Admin Name</p>
-                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails.hospital.profile.adminName}</p>
+                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails?.hospital.profile?.adminName}</p>
                     </div>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                       <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium mb-1">Admin Phone</p>
-                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails.hospital.profile.adminPhone}</p>
+                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails?.hospital.profile?.adminPhone}</p>
                     </div>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                       <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium mb-1">Bed Capacity</p>
-                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails.hospital.profile.totalBedCapacity}</p>
+                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails?.hospital.profile?.totalBedCapacity}</p>
                     </div>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                       <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium mb-1">Blood Bank Capacity</p>
-                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails.hospital.profile.bloodBankCapacity}</p>
+                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails?.hospital.profile?.bloodBankCapacity}</p>
                     </div>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4 md:col-span-2">
                       <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium mb-1">Address</p>
-                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails.hospital.profile.address}</p>
+                      <p className="text-sm font-semibold text-zinc-100">{selectedDonationDetails?.hospital.profile?.address}</p>
                     </div>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4 md:col-span-2">
                       <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-medium mb-1">Location</p>
                       <p className="text-sm font-semibold text-zinc-100">
-                        {selectedDonationDetails.hospital.profile.location.area}, {selectedDonationDetails.hospital.profile.location.district}, {selectedDonationDetails.hospital.profile.location.division}
+                        {selectedDonationDetails?.hospital.profile?.location.area}, {selectedDonationDetails?.hospital.profile?.location.district}, {selectedDonationDetails?.hospital.profile?.location.division}
                       </p>
                     </div>
                   </div>
@@ -612,7 +615,8 @@ export default function AdminDonationsPage() {
                 )}
 
                 {/* Action Section */}
-                <div>
+               {
+                selectedDonation?.status !== "request" ?  <div>
                   <h3 className="text-lg font-semibold text-zinc-100 mb-4">Update Status</h3>
                   
                   <div className="mb-4">
@@ -638,7 +642,8 @@ export default function AdminDonationsPage() {
                       </button>
                     ))}
                   </div>
-                </div>
+                </div> : <></>
+               }
               </div>
             </div>
             ) : (

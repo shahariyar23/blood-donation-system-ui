@@ -69,6 +69,7 @@ export interface HospitalDonorApi {
   totalDonations?: number;
   lastDonationDate?: string | null;
   nextAvailableAt?: string | null;
+  nextDonationDate?: string | null;
   primarySocialLink?: string | null;
   location?: {
     city?: string;
@@ -197,7 +198,7 @@ export const mapHospitalDonor = (donor: HospitalDonorApi): HospitalDonor => ({
   isAvailable: Boolean(donor.isAvailable),
   totalDonations: donor.totalDonations ?? 0,
   lastDonationDate: donor.lastDonationDate ?? null,
-  nextAvailableAt: donor.nextAvailableAt ?? null,
+  nextAvailableAt: donor.nextAvailableAt ?? donor.nextDonationDate ?? null,
   primarySocialLink: donor.primarySocialLink ?? null,
 });
 

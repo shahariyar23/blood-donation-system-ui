@@ -28,7 +28,7 @@ import {
 import { Bar, Doughnut, Line } from "react-chartjs-2";
 import { getAdminDashboardApi, getAdminSettingsApi } from "../service/adminService.ts";
 import { downloadJson, formatAdminDate } from "../service/adminReporting.ts";
-import type { AdminDashboardStats, AdminSettings } from "../types/admin";
+import type { AdminDashboardCharts, AdminDashboardStats, AdminSettings } from "../types/admin";
 
 ChartJS.register(
   ArcElement,
@@ -79,6 +79,22 @@ const dayKey = (date: Date) =>
     String(date.getDate()).padStart(2, "0"),
   ].join("-");
 
+const formatMonthLabel = (value: string) => {
+  const [year, month] = value.split("-").map(Number);
+  if (!year || !month) return value;
+
+  return new Date(year, month - 1, 1).toLocaleDateString("en-US", {
+    month: "short",
+  });
+};
+
+const formatWeekdayLabel = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString("en-US", { weekday: "short" });
+};
+
 const buildMonthlyTrend = (
   recentUsers: Awaited<ReturnType<typeof getAdminDashboardApi>>["recentUsers"],
   recentReports: Awaited<ReturnType<typeof getAdminDashboardApi>>["recentReports"],
@@ -125,6 +141,26 @@ const buildMonthlyTrend = (
   return series;
 };
 
+const buildBackendMonthlyTrend = (
+  charts: AdminDashboardCharts | null,
+  fallbackUsers: Awaited<ReturnType<typeof getAdminDashboardApi>>["recentUsers"],
+  fallbackReports: Awaited<ReturnType<typeof getAdminDashboardApi>>["recentReports"],
+  months: number
+) => {
+  const monthlyTrend = charts?.monthlyTrend ?? [];
+
+  if (monthlyTrend.length > 0) {
+    return monthlyTrend.slice(-months).map((point) => ({
+      key: point.month,
+      label: formatMonthLabel(point.month),
+      donations: point.donations,
+      requests: point.requests,
+    }));
+  }
+
+  return buildMonthlyTrend(fallbackUsers, fallbackReports, months);
+};
+
 const buildWeeklyDonorSeries = (
   recentUsers: Awaited<ReturnType<typeof getAdminDashboardApi>>["recentUsers"]
 ) => {
@@ -159,6 +195,23 @@ const buildWeeklyDonorSeries = (
   return series;
 };
 
+const buildBackendWeeklyDonorSeries = (
+  charts: AdminDashboardCharts | null,
+  fallbackUsers: Awaited<ReturnType<typeof getAdminDashboardApi>>["recentUsers"]
+) => {
+  const weeklyDonorRegistrations = charts?.weeklyDonorRegistrations ?? [];
+
+  if (weeklyDonorRegistrations.length > 0) {
+    return weeklyDonorRegistrations.map((point) => ({
+      key: point.date,
+      label: formatWeekdayLabel(point.date),
+      value: point.count,
+    }));
+  }
+
+  return buildWeeklyDonorSeries(fallbackUsers);
+};
+
 const buildBloodTypeDistribution = (
   recentUsers: Awaited<ReturnType<typeof getAdminDashboardApi>>["recentUsers"],
   totalDonors: number
@@ -190,6 +243,29 @@ const buildBloodTypeDistribution = (
   }));
 };
 
+const buildBackendBloodTypeDistribution = (
+  charts: AdminDashboardCharts | null,
+  fallbackUsers: Awaited<ReturnType<typeof getAdminDashboardApi>>["recentUsers"],
+  totalDonors: number
+) => {
+  const backendCounts = charts?.bloodTypeDistribution ?? [];
+
+  if (backendCounts.length > 0) {
+    const counts = bloodTypeLabels.map((label) => ({ label, value: 0 }));
+    const byLabel = new Map(counts.map((item) => [item.label, item]));
+
+    backendCounts.forEach((point) => {
+      const label = point.bloodType.trim().toUpperCase();
+      const item = byLabel.get(label);
+      if (item) item.value = point.count;
+    });
+
+    return counts;
+  }
+
+  return buildBloodTypeDistribution(fallbackUsers, totalDonors);
+};
+
 const buildStatusBreakdown = (
   recentReports: Awaited<ReturnType<typeof getAdminDashboardApi>>["recentReports"]
 ) => {
@@ -205,6 +281,26 @@ const buildStatusBreakdown = (
     { label: "other", value: other },
   ].filter((item) => item.value > 0);
 };
+
+const buildBackendStatusBreakdown = (
+  charts: AdminDashboardCharts | null,
+  fallbackReports: Awaited<ReturnType<typeof getAdminDashboardApi>>["recentReports"]
+) => {
+  const reportStatusBreakdown = charts?.reportStatusBreakdown ?? [];
+
+  if (reportStatusBreakdown.length > 0) {
+    return reportStatusBreakdown.map((point) => ({
+      label: point.status,
+      value: point.count,
+    }));
+  }
+
+  return buildStatusBreakdown(fallbackReports);
+};
+
+const isDonorVerified = (
+  user: Awaited<ReturnType<typeof getAdminDashboardApi>>["recentUsers"][number]
+) => Boolean(user.isDonorVerified ?? user.isVerifyDonor ?? user.donor?.isVerified);
 
 const formatCompactDate = (value?: string) => {
   if (!value) return "—";
@@ -275,6 +371,7 @@ function StatCard({
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
+  const [charts, setCharts] = useState<AdminDashboardCharts | null>(null);
   const [recentUsers, setRecentUsers] = useState<
     Awaited<ReturnType<typeof getAdminDashboardApi>>["recentUsers"]
   >([]);
@@ -293,6 +390,7 @@ export default function AdminDashboard() {
           getAdminSettingsApi(),
         ]);
         setStats(data.stats);
+        setCharts(data.charts ?? null);
         setRecentUsers(data.recentUsers ?? []);
         setRecentReports(data.recentReports ?? []);
         setSettings(adminSettings);
@@ -315,10 +413,15 @@ export default function AdminDashboard() {
   }
 
   const months = range === "1y" ? 12 : range === "6m" ? 6 : 3;
-  const monthlyTrend = buildMonthlyTrend(recentUsers, recentReports, months);
-  const weeklySeries = buildWeeklyDonorSeries(recentUsers);
-  const bloodTypeDistribution = buildBloodTypeDistribution(recentUsers, stats.totalDonors);
-  const statusBreakdown = buildStatusBreakdown(recentReports);
+  const monthlyTrend = buildBackendMonthlyTrend(charts, recentUsers, recentReports, months);
+  const weeklySeries = buildBackendWeeklyDonorSeries(charts, recentUsers);
+  const bloodTypeDistribution = buildBackendBloodTypeDistribution(
+    charts,
+    recentUsers,
+    stats.totalDonors
+  );
+  const statusBreakdown = buildBackendStatusBreakdown(charts, recentReports);
+  const hasReportStatusData = statusBreakdown.length > 0;
   const bloodBankSettings = settings?.bloodBankSettings;
   const today = new Date();
 
@@ -392,7 +495,7 @@ export default function AdminDashboard() {
     labels: bloodTypeLabels,
     datasets: [
       {
-        label: "Requests",
+        label: "Blood groups",
         data: bloodTypeDistribution.map((item) => item.value),
         backgroundColor: ["#dc2626", "#e34a3b", "#ef4444", "#2563eb", "#6366f1", "#0f766e", "#a16207", "#a8a29e"],
         borderRadius: 8,
@@ -472,10 +575,10 @@ export default function AdminDashboard() {
   };
 
   const statusData = {
-    labels: statusBreakdown.map((item) => item.label),
+    labels: hasReportStatusData ? statusBreakdown.map((item) => item.label) : ["No reports"],
     datasets: [
       {
-        data: statusBreakdown.map((item) => item.value),
+        data: hasReportStatusData ? statusBreakdown.map((item) => item.value) : [1],
         backgroundColor: ["#2563eb", "#dc2626", "#9ca3af", "#7c3aed"],
         borderWidth: 0,
         hoverOffset: 4,
@@ -545,6 +648,9 @@ export default function AdminDashboard() {
 
   const donorThisWeek = weeklySeries.reduce((sum, point) => sum + point.value, 0);
   const donorLastWeek = Math.max(0, donorThisWeek - Math.round(donorThisWeek * 0.18));
+  const pendingDonorUsers = recentUsers.filter(
+    (user) => user.role === "donor" && !isDonorVerified(user)
+  );
 
   const activityLog: ActivityLogEntry[] = [
     ...recentUsers.map((user) => ({
@@ -572,6 +678,7 @@ export default function AdminDashboard() {
   const dashboardSnapshot = {
     generatedAt: new Date().toISOString(),
     stats,
+    charts,
     recentUsers: recentUsers.map((user) => ({
       id: user._id,
       name: user.name,
@@ -634,7 +741,7 @@ export default function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total donors" value={stats.totalDonors} detail="Registered donor accounts ready for matching." chip="Live" icon={Droplets} accent="donor" />
         <StatCard label="Hospitals" value={stats.totalHospitals} detail="Connected institutions in the network." chip="Verified" icon={Building2} accent="hospital" />
-        <StatCard label="Pending requests" value={stats.totalBloodRequests} detail="Blood requests currently tracked by the platform." chip="Queue" icon={FileText} accent="request" />
+        <StatCard label="Total Blood requests" value={stats.totalBloodRequests} detail="Blood requests currently tracked by the platform." chip="Queue" icon={FileText} accent="request" />
         <StatCard label="Total donations" value={stats.totalDonations} detail="Completed donations logged in the system." chip="Tracked" icon={Activity} accent="donation" />
       </div>
 
@@ -686,8 +793,8 @@ export default function AdminDashboard() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[2px] text-zinc-400">Blood type demand</p>
-              <h2 className="mt-1 text-lg font-semibold text-white">Requests by blood group</h2>
-              <p className="mt-1 text-sm text-zinc-400">Demand distribution based on donor blood types.</p>
+              <h2 className="mt-1 text-lg font-semibold text-white">Blood groups in network</h2>
+              <p className="mt-1 text-sm text-zinc-400">Distribution from backend blood-group counts.</p>
             </div>
             <BarChart3 className="h-5 w-5 text-zinc-400" />
           </div>
@@ -760,10 +867,10 @@ export default function AdminDashboard() {
           </div>
 
           <div className="mt-4 space-y-3">
-            {recentUsers.length === 0 ? (
-              <p className="text-sm text-zinc-400">No recent users available.</p>
+            {pendingDonorUsers.length === 0 ? (
+              <p className="text-sm text-zinc-400">No pending donor verifications.</p>
             ) : (
-              recentUsers.slice(0, 5).map((user) => (
+              pendingDonorUsers.slice(0, 5).map((user) => (
                 <div key={user._id} className="rounded-2xl border border-white/8 bg-white/5 px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
@@ -779,8 +886,8 @@ export default function AdminDashboard() {
                       <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-zinc-300">{formatCompactDate(user.createdAt)}</span>
                       <span className={[
                         "rounded-full px-2.5 py-1 text-xs font-semibold",
-                        user.isVerified ? "bg-[#0f3d2f] text-[#9cf1cc]" : "bg-[#3d2e12] text-[#ffd79a]",
-                      ].join(" ")}>{user.isVerified ? "Verified" : "Pending"}</span>
+                        isDonorVerified(user) ? "bg-[#0f3d2f] text-[#9cf1cc]" : "bg-[#3d2e12] text-[#ffd79a]",
+                      ].join(" ")}>{isDonorVerified(user) ? "Verified" : "Pending"}</span>
                     </div>
                   </div>
                 </div>

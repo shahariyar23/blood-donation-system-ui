@@ -55,7 +55,7 @@ export function StepHealth({
               key={g}
               onClick={() => {
                 set("gender", g);
-                focusField("age");
+                focusField("weight");
               }}
               style={{
                 ...styles.selectBtn,
@@ -71,22 +71,7 @@ export function StepHealth({
         </div>
       </Field>
 
-      <div style={styles.grid3}>
-        <Field label="Age" error={errors.age} isRequired>
-          <input
-            ref={setFieldRef("age")}
-            name="age"
-            style={{ ...styles.input, ...(errors.age ? styles.inputError : {}) }}
-            type="number"
-            value={form.age}
-            onChange={(e) => set("age", e.target.value)}
-            onKeyDown={(e) => handleInputKeyDown(e, "age")}
-            placeholder="25"
-            min={18}
-            max={65}
-          />
-          <span style={styles.hint}>18–65 years</span>
-        </Field>
+      <div style={styles.grid2}>
         <Field label="Weight (kg)" error={errors.weight}>
           <input
             ref={setFieldRef("weight")}

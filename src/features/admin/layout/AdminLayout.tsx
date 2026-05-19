@@ -3,8 +3,6 @@ import toast from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
 import { Outlet, useNavigate } from "react-router-dom";
 import {
-  Bell,
-  Plus,
   User,
 } from "lucide-react";
 import { clearUser } from "../../../redux/slices/userSlice";
@@ -94,14 +92,14 @@ export default function AdminLayout() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button
+            {/* <button
               type="button"
               className="relative flex h-11 w-11 items-center justify-center rounded-lg border border-white/15 bg-white/5 text-white/80 transition hover:bg-white/10"
               aria-label="Notifications"
             >
               <Bell className="h-4.5 w-4.5" />
               <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-rose-500" />
-            </button>
+            </button> */}
             {user && (
               <div className="inline-flex h-11 items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 text-sm font-semibold text-white transition hover:bg-white/10">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#8B5CF6]">
@@ -110,13 +108,6 @@ export default function AdminLayout() {
                 <span>{user.name}</span>
               </div>
             )}
-            <button
-              type="button"
-              className="inline-flex h-11 items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 text-sm font-semibold text-white transition hover:bg-white/10"
-            >
-              <Plus className="h-4 w-4" />
-              Add donor
-            </button>
           </div>
         </div>
       </header>

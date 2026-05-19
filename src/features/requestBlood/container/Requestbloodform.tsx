@@ -11,6 +11,7 @@ import {
 } from "../service/Requestblooddata";
 import { createBloodRequest } from "../service/requestBloodApi";
 import toast from "react-hot-toast";
+import { Link } from "react-router-dom";
 
 // ── Reverse geocode via OpenStreetMap Nominatim ────────
 const reverseGeocode = async (
@@ -243,9 +244,9 @@ const RequestBloodForm = () => {
           >
             Post Another Request
           </button>
-          <a href="/find-donor" className="btn-primary text-sm text-center">
+          <Link to="/view-all-requests" className="btn-primary text-sm text-center">
             View Donors
-          </a>
+          </Link>
         </div>
       </div>
     );

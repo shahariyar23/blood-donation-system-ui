@@ -64,8 +64,16 @@ export const cancelBloodRequest = async (id: string) => {
   return res.data.data;
 };
 
+export const fulfillBloodRequest = async (id: string) => {
+  const res = await Api.patch<ApiEnvelope<{ _id: string; status: string }>>(
+    `/blood-requests/${id}/fulfilled`
+  );
+  return res.data.data;
+};
+
 export default {
   createBloodRequest,
   getUserBloodRequests,
   cancelBloodRequest,
+  fulfillBloodRequest,
 };

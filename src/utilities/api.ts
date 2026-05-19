@@ -35,7 +35,7 @@ Api.interceptors.request.use(
     const isHospitalApi =
       requestUrl.startsWith("/hospital") ||
       requestUrl.startsWith("/donor") ||
-      requestUrl.startsWith("/blood");
+      requestUrl.startsWith("/blood-bank");
 
     const token = isHospitalApi
       ? state.hospital.token || state.user.token
@@ -70,7 +70,7 @@ Api.interceptors.response.use(
     const isHospitalApi =
       requestUrl.startsWith("/hospital") ||
       requestUrl.startsWith("/donor") ||
-      requestUrl.startsWith("/blood");
+      requestUrl.startsWith("/blood-bank");
 
     // skip refresh endpoint itself
     if (

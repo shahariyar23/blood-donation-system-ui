@@ -7,6 +7,7 @@ import {
   Building2,
   CheckCircle2,
   Lock,
+  Mail,
   ShieldCheck,
   Warehouse,
   X,
@@ -23,6 +24,7 @@ import {
   verifyAdminHospitalApi,
   type AdminCreateHospitalPayload,
 } from "../service/adminService.ts";
+import { hospitalForgotPasswordApi } from "../../hospital/service/hospitalAuthService.ts";
 import Pagination from "../../../shared/components/Pagination.tsx";
 import { formatAdminDate } from "../service/adminReporting.ts";
 import type { AdminHospital } from "../types/admin";
@@ -109,6 +111,7 @@ export default function AdminHospitalsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [createdPayload, setCreatedPayload] = useState<AdminCreateHospitalPayload | null>(null);
   const [hospitalActionLoading, setHospitalActionLoading] = useState(false);
+  const [resetPasswordHospitalId, setResetPasswordHospitalId] = useState<string | null>(null);
 
   useEffect(() => {
     const run = async () => {
@@ -370,6 +373,26 @@ export default function AdminHospitalsPage() {
     }
   };
 
+  const handleSendPasswordReset = async (hospital: AdminHospital) => {
+    if (!hospital.email) {
+      toast.error("Hospital email is missing");
+      return;
+    }
+
+    setResetPasswordHospitalId(hospital._id);
+    try {
+      const result = await hospitalForgotPasswordApi({ email: hospital.email });
+      toast.success(result.message || `Password reset link sent to ${hospital.email}`);
+    } catch (error: unknown) {
+      const apiMessage = axios.isAxiosError(error)
+        ? ((error.response?.data as { message?: string } | undefined)?.message ?? "")
+        : "";
+      toast.error(apiMessage || "Failed to send password reset link");
+    } finally {
+      setResetPasswordHospitalId(null);
+    }
+  };
+
   const handleToggleHospitalStatus = async () => {
     if (!selectedHospital) return;
     setHospitalActionLoading(true);
@@ -625,6 +648,19 @@ export default function AdminHospitalsPage() {
                     <span className={`rounded-full px-2 py-1 text-xs font-medium ${hospital.isActive ? "bg-blue-500/20 text-blue-300" : "bg-rose-500/20 text-rose-300"}`}>
                       {hospital.isActive ? "Active" : "Inactive"}
                     </span>
+                    <button
+                      type="button"
+                      disabled={resetPasswordHospitalId === hospital._id}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleSendPasswordReset(hospital);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-200 transition hover:bg-blue-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                      title={`Send password reset link to ${hospital.email}`}
+                    >
+                      <Mail className="h-3.5 w-3.5" />
+                      {resetPasswordHospitalId === hospital._id ? "Sending..." : "Reset password"}
+                    </button>
                   </div>
                 </div>
               </article>
@@ -819,6 +855,17 @@ export default function AdminHospitalsPage() {
                 >
                   <Lock className="h-4 w-4" />
                   {selectedHospital.isActive ? "Ban" : "Activate"}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={resetPasswordHospitalId === selectedHospital._id}
+                  onClick={() => void handleSendPasswordReset(selectedHospital)}
+                  className="inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-200 transition hover:bg-blue-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                  title={`Send password reset link to ${selectedHospital.email}`}
+                >
+                  <Mail className="h-4 w-4" />
+                  {resetPasswordHospitalId === selectedHospital._id ? "Sending..." : "Reset password"}
                 </button>
 
                 <button

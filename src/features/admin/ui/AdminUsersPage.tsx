@@ -6,12 +6,9 @@ import {
   Flag,
   Lock,
   ShieldCheck,
-  UserCheck,
-  UserX,
   Users2,
   X,
   ChevronDown,
-  Shield,
   Ban,
 } from "lucide-react";
 import {
@@ -22,21 +19,44 @@ import {
   updateAdminUserStatusApi,
   verifyAdminDonorApi,
   verifyAdminUserApi,
+  type AdminVerificationStatus,
 } from "../service/adminService.ts";
 import { downloadCsv, formatAdminDate } from "../service/adminReporting.ts";
 import type { AdminUser, AdminUserDetails } from "../types/admin";
+
+const isUserDonorVerified = (user: AdminUser) =>
+  Boolean(user.isVerifyDonor ?? user.isDonorVerified ?? user.donor?.isVerified);
+
+const formatLocation = (user?: AdminUserDetails | AdminUser | null) => {
+  const location = user?.location;
+  if (!location) return "N/A";
+
+  return [
+    location.displayName,
+    location.road,
+    location.city,
+    location.state,
+    location.country,
+  ]
+    .filter(Boolean)
+    .join(", ") || "N/A";
+};
 
 const userCsvColumns = [
   { label: "Name", value: (user: AdminUser) => user.name },
   { label: "Email", value: (user: AdminUser) => user.email },
   { label: "Role", value: (user: AdminUser) => user.role },
   { label: "Verified", value: (user: AdminUser) => (user.isVerified ? "Yes" : "No") },
-  { label: "Donor verified", value: (user: AdminUser) => (user.isDonorVerified ? "Yes" : "No") },
+  { label: "Donor verified", value: (user: AdminUser) => (isUserDonorVerified(user) ? "Yes" : "No") },
   { label: "Active", value: (user: AdminUser) => (user.isActive ? "Yes" : "No") },
   { label: "Flags", value: (user: AdminUser) => user.communityFlags ?? 0 },
   { label: "Blood type", value: (user: AdminUser) => user.bloodType ?? "" },
   { label: "Created at", value: (user: AdminUser) => formatAdminDate(user.createdAt) },
 ] as const;
+
+const getApiErrorMessage = (error: unknown, fallback: string) =>
+  (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+  fallback;
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -104,9 +124,10 @@ export default function AdminUsersPage() {
         if (isActive) {
           setSelectedUserDetails({ ...selectedUser, ...payload });
         }
-      } catch {
+      } catch (error: unknown) {
         if (isActive) {
           setSelectedUserDetails(selectedUser);
+          toast.error(getApiErrorMessage(error, "Failed to load user details"));
         }
       } finally {
         if (isActive) {
@@ -159,7 +180,26 @@ export default function AdminUsersPage() {
   );
 
   const selectedUserRole = selectedUserDetails?.role ?? selectedUser?.role ?? null;
-  const selectedUserLastDonationDate = selectedUserDetails?.donorInfo?.lastDonationDate ?? null;
+  const selectedUserLastDonationDate =
+    selectedUserDetails?.donorInfo?.lastDonationDate ??
+    selectedUserDetails?.lastDonationDate ??
+    selectedUser?.lastDonationDate ??
+    null;
+  const selectedUserDonorVerified = selectedUserDetails
+    ? isUserDonorVerified(selectedUserDetails)
+    : selectedUser
+      ? isUserDonorVerified(selectedUser)
+      : false;
+  const selectedUserTotalDonations =
+    selectedUserDetails?.donorInfo?.totalDonations ??
+    selectedUserDetails?.totalDonations ??
+    selectedUser?.totalDonations ??
+    0;
+  const selectedUserLastDonationUnits =
+    selectedUserDetails?.donorInfo?.lastDonationUnits ??
+    selectedUserDetails?.lastDonationUnits ??
+    selectedUser?.lastDonationUnits ??
+    null;
   const selectedUserNextEligibleDate = useMemo<string | undefined>(() => {
     if (selectedUserRole !== "donor" || !selectedUserLastDonationDate || !eligibilityDays) {
       return undefined;
@@ -206,28 +246,34 @@ export default function AdminUsersPage() {
       await updateAdminUserStatusApi(user._id, !Boolean(user.isActive));
       toast.success(`User ${user.isActive ? "banned" : "activated"}`);
       await fetchUsers();
-    } catch {
-      toast.error("Failed to update user status");
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, "Failed to update user status"));
     }
   };
 
-  const handleVerifyDonor = async (user: AdminUser) => {
+  const handleUpdateDonorVerification = async (
+    user: AdminUser,
+    status: Exclude<AdminVerificationStatus, "blocked">
+  ) => {
     try {
-      await verifyAdminDonorApi(user._id);
-      toast.success("Donor verified");
+      await verifyAdminDonorApi(user._id, { status });
+      toast.success(`Donor ${status}`);
       await fetchUsers();
-    } catch {
-      toast.error("Failed to verify donor");
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, "Failed to update donor verification"));
     }
   };
 
-  const handleVerifyUser = async (user: AdminUser) => {
+  const handleUpdateUserVerification = async (
+    user: AdminUser,
+    status: AdminVerificationStatus
+  ) => {
     try {
-      await verifyAdminUserApi(user._id);
-      toast.success("User verified");
+      await verifyAdminUserApi(user._id, { status });
+      toast.success(status === "blocked" ? "User blocked" : `User ${status}`);
       await fetchUsers();
-    } catch {
-      toast.error("Failed to verify user");
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, "Failed to update user verification"));
     }
   };
 
@@ -244,8 +290,8 @@ export default function AdminUsersPage() {
       await updateAdminCommunityFlagsApi(user._id, { action: "set", value });
       toast.success("Community flags updated");
       await fetchUsers();
-    } catch {
-      toast.error("Failed to update flags");
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, "Failed to update flags"));
     }
   };
 
@@ -379,17 +425,25 @@ export default function AdminUsersPage() {
                 </td>
               </tr>
             ) : (
-              visibleUsers.map((user) => (
+              visibleUsers.map((user, index) => {
+                const donorVerified = isUserDonorVerified(user);
+                const shouldOpenDropdownUp = visibleUsers.length - index <= 2;
+                const dropdownMenuClass = `absolute left-0 right-0 bg-[#2a2d35] border border-white/10 rounded-lg shadow-lg z-40 ${
+                  shouldOpenDropdownUp ? "bottom-full mb-1" : "top-full mt-1"
+                }`;
+
+                return (
                 <tr
                   key={user._id}
-                  className="border-t border-white/10 transition hover:bg-white/5"
+                  onClick={() => setSelectedUser(user)}
+                  className="cursor-pointer border-t border-white/10 transition hover:bg-white/5"
                 >
                   <td className="px-4 py-4 font-medium text-zinc-100">{user.name}</td>
                   <td className="px-4 py-4 text-zinc-400">{user.email}</td>
                   <td className="px-4 py-4 uppercase text-xs tracking-[1px] text-zinc-400 font-semibold">{user.role}</td>
                   
                   {/* Verified Column with Dropdown */}
-                  <td className="px-4 py-4 relative">
+                  <td className="px-4 py-4 relative" onClick={(event) => event.stopPropagation()}>
                     <div className="relative">
                       <button
                         onClick={() => setOpenDropdown(openDropdown === `verified-${user._id}` ? null : `verified-${user._id}`)}
@@ -398,37 +452,48 @@ export default function AdminUsersPage() {
                         <span>{user.isVerified ? "Verified" : "Pending"}</span>
                         <ChevronDown className="h-3.5 w-3.5" />
                       </button>
-                      {openDropdown === `verified-${user._id}` && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-[#2a2d35] border border-white/10 rounded-lg shadow-lg z-40">
-                          {!user.isVerified && (
+                        {openDropdown === `verified-${user._id}` && (
+                          <div className={dropdownMenuClass}>
+                            {user.isVerified ? (
+                              <button
+                                onClick={() => {
+                                  setOpenDropdown(null);
+                                  void handleUpdateUserVerification(user, "unverified");
+                                }}
+                                className="w-full px-3 py-2 text-left text-xs font-semibold text-amber-300 hover:bg-amber-500/20 transition flex items-center gap-2 border-b border-white/10"
+                              >
+                                <Lock className="h-3.5 w-3.5" />
+                                Unverify user
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setOpenDropdown(null);
+                                  void handleUpdateUserVerification(user, "verified");
+                                }}
+                                className="w-full px-3 py-2 text-left text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition flex items-center gap-2 border-b border-white/10"
+                              >
+                                <CheckCircle className="h-3.5 w-3.5" />
+                                Verify user
+                              </button>
+                            )}
                             <button
                               onClick={() => {
                                 setOpenDropdown(null);
-                                void handleVerifyUser(user);
+                                void handleUpdateUserVerification(user, "blocked");
                               }}
-                              className="w-full px-3 py-2 text-left text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition flex items-center gap-2 border-b border-white/10"
+                              className="w-full px-3 py-2 text-left text-xs font-semibold text-rose-300 hover:bg-rose-500/20 transition flex items-center gap-2"
                             >
-                              <CheckCircle className="h-3.5 w-3.5" />
-                              Verify user
+                              <Ban className="h-3.5 w-3.5" />
+                              Block user
                             </button>
-                          )}
-                          <button
-                            onClick={() => {
-                              setOpenDropdown(null);
-                              void handleToggleStatus(user);
-                            }}
-                            className="w-full px-3 py-2 text-left text-xs font-semibold text-rose-300 hover:bg-rose-500/20 transition flex items-center gap-2"
-                          >
-                            <Lock className="h-3.5 w-3.5" />
-                            Ban
-                          </button>
                         </div>
                       )}
                     </div>
                   </td>
                   
                   {/* Status Column with Dropdown */}
-                  <td className="px-4 py-4 relative">
+                  <td className="px-4 py-4 relative" onClick={(event) => event.stopPropagation()}>
                     <div className="relative">
                       <button
                         onClick={() => setOpenDropdown(openDropdown === `status-${user._id}` ? null : `status-${user._id}`)}
@@ -438,7 +503,7 @@ export default function AdminUsersPage() {
                         <ChevronDown className="h-3.5 w-3.5" />
                       </button>
                       {openDropdown === `status-${user._id}` && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-[#2a2d35] border border-white/10 rounded-lg shadow-lg z-40">
+                        <div className={dropdownMenuClass}>
                           {user.isActive ? (
                             <button
                               onClick={() => {
@@ -468,23 +533,34 @@ export default function AdminUsersPage() {
                   </td>
                   
                   {/* Verify Donor Column with Dropdown */}
-                  <td className="px-4 py-4 relative">
+                  <td className="px-4 py-4 relative" onClick={(event) => event.stopPropagation()}>
                     {user.role === "donor" ? (
                       <div className="relative">
                         <button
                           onClick={() => setOpenDropdown(openDropdown === `donor-${user._id}` ? null : `donor-${user._id}`)}
-                          className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold transition ${user.isDonorVerified ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30" : "bg-sky-500/20 text-sky-300 hover:bg-sky-500/30"}`}
+                          className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold transition ${donorVerified ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30" : "bg-sky-500/20 text-sky-300 hover:bg-sky-500/30"}`}
                         >
-                          <span>{user.isDonorVerified ? "Verified" : "Pending"}</span>
+                          <span>{donorVerified ? "Verified" : "Pending"}</span>
                           <ChevronDown className="h-3.5 w-3.5" />
                         </button>
                         {openDropdown === `donor-${user._id}` && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-[#2a2d35] border border-white/10 rounded-lg shadow-lg z-40">
-                            {!user.isDonorVerified && (
+                          <div className={dropdownMenuClass}>
+                            {donorVerified ? (
                               <button
                                 onClick={() => {
                                   setOpenDropdown(null);
-                                  void handleVerifyDonor(user);
+                                  void handleUpdateDonorVerification(user, "unverified");
+                                }}
+                                className="w-full px-3 py-2 text-left text-xs font-semibold text-rose-300 hover:bg-rose-500/20 transition flex items-center gap-2"
+                              >
+                                <Ban className="h-3.5 w-3.5" />
+                                Unverify donor
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setOpenDropdown(null);
+                                  void handleUpdateDonorVerification(user, "verified");
                                 }}
                                 className="w-full px-3 py-2 text-left text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition flex items-center gap-2"
                               >
@@ -502,7 +578,7 @@ export default function AdminUsersPage() {
                   
                   <td className="px-4 py-4 text-zinc-400 font-semibold">{user.communityFlags ?? 0}</td>
                   
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-4" onClick={(event) => event.stopPropagation()}>
                     <button
                       type="button"
                       onClick={() => void handleSetFlags(user)}
@@ -514,7 +590,8 @@ export default function AdminUsersPage() {
                     </button>
                   </td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>
@@ -606,10 +683,22 @@ export default function AdminUsersPage() {
 
             <div className="min-h-0 flex-1 overflow-y-auto px-8 py-8 pb-8">
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="rounded-xl border border-white/15 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-semibold">Email</p>
+                  <p className="mt-3 break-all text-sm font-semibold text-zinc-100">
+                    {renderDetailValue(selectedUserDetails?.email ?? selectedUser.email)}
+                  </p>
+                </div>
                 <div className="rounded-xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-indigo-600/5 p-4">
                   <p className="text-xs uppercase tracking-[2px] text-indigo-300 font-semibold">Role</p>
                   <p className="mt-3 text-sm font-bold text-indigo-100">
                     {selectedUserDetails?.role ?? selectedUser.role}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-violet-500/30 bg-gradient-to-br from-violet-500/10 to-violet-600/5 p-4">
+                  <p className="text-xs uppercase tracking-[2px] text-violet-300 font-semibold">Gender</p>
+                  <p className="mt-3 text-sm font-bold text-violet-100">
+                    {renderDetailValue(selectedUserDetails?.gender ?? selectedUser.gender)}
                   </p>
                 </div>
                 <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 p-4">
@@ -630,6 +719,16 @@ export default function AdminUsersPage() {
                     {renderDetailValue(selectedUserDetails?.bloodType)}
                   </p>
                 </div>
+                <div className="rounded-xl border border-teal-500/30 bg-gradient-to-br from-teal-500/10 to-teal-600/5 p-4">
+                  <p className="text-xs uppercase tracking-[2px] text-teal-300 font-semibold">Available</p>
+                  <p className="mt-3 text-sm font-bold text-teal-100">
+                    {selectedUserDetails?.isAvailable === undefined && selectedUser.isAvailable === undefined
+                      ? "N/A"
+                      : selectedUserDetails?.isAvailable ?? selectedUser.isAvailable
+                        ? "Yes"
+                        : "No"}
+                  </p>
+                </div>
                 <div className="rounded-xl border border-rose-500/30 bg-gradient-to-br from-rose-500/10 to-rose-600/5 p-4">
                   <p className="text-xs uppercase tracking-[2px] text-rose-300 font-semibold">Phone</p>
                   <p className="mt-3 text-sm font-bold text-rose-100">
@@ -640,6 +739,18 @@ export default function AdminUsersPage() {
                   <p className="text-xs uppercase tracking-[2px] text-amber-300 font-semibold">Community flags</p>
                   <p className="mt-3 text-sm font-bold text-amber-100">
                     {selectedUserDetails?.communityFlags ?? 0}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 p-4">
+                  <p className="text-xs uppercase tracking-[2px] text-cyan-300 font-semibold">Total received</p>
+                  <p className="mt-3 text-sm font-bold text-cyan-100">
+                    {selectedUserDetails?.totalReceived ?? selectedUser.totalReceived ?? 0}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-fuchsia-500/30 bg-gradient-to-br from-fuchsia-500/10 to-fuchsia-600/5 p-4">
+                  <p className="text-xs uppercase tracking-[2px] text-fuchsia-300 font-semibold">Last received</p>
+                  <p className="mt-3 text-sm font-bold text-fuchsia-100">
+                    {formatAdminDate(selectedUserDetails?.lastReceivedDate ?? selectedUser.lastReceivedDate ?? undefined)}
                   </p>
                 </div>
                 <div className="rounded-xl border border-white/15 bg-white/5 p-4">
@@ -654,10 +765,10 @@ export default function AdminUsersPage() {
                     {formatAdminDate(selectedUserDetails?.updatedAt)}
                   </p>
                 </div>
-                <div className="rounded-xl border border-white/15 bg-white/5 p-4">
+                <div className="rounded-xl border border-white/15 bg-white/5 p-4 md:col-span-2 xl:col-span-3">
                   <p className="text-xs uppercase tracking-[2px] text-zinc-400 font-semibold">Location</p>
                   <p className="mt-3 text-sm font-semibold text-zinc-100">
-                    {"N/A"}
+                    {formatLocation(selectedUserDetails ?? selectedUser)}
                   </p>
                 </div>
               </div>
@@ -668,6 +779,32 @@ export default function AdminUsersPage() {
                 </div>
               ) : null}
 
+              {(selectedUserDetails?.socialLinks ?? selectedUser.socialLinks) ? (
+                <div className="mt-6 rounded-2xl border border-white/15 bg-white/5 p-6">
+                  <h3 className="text-lg font-bold text-zinc-100">Social links</h3>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    {(["facebook", "instagram", "twitter"] as const).map((key) => {
+                      const value = (selectedUserDetails?.socialLinks ?? selectedUser.socialLinks)?.[key];
+
+                      return value ? (
+                        <a
+                          key={key}
+                          href={value}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold capitalize text-zinc-200 transition hover:border-amber-500/40 hover:bg-amber-500/10 hover:text-amber-200"
+                        >
+                          {key}
+                        </a>
+                      ) : null;
+                    })}
+                    {!Object.values(selectedUserDetails?.socialLinks ?? selectedUser.socialLinks ?? {}).some(Boolean) && (
+                      <span className="text-sm text-zinc-400">No social links available</span>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
               {selectedUserRole === "donor" ? (
                 <div className="mt-6 rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 p-6">
                   <h3 className="text-lg font-bold text-emerald-100">Donor activity</h3>
@@ -675,29 +812,25 @@ export default function AdminUsersPage() {
                     <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
                       <p className="text-xs uppercase tracking-[2px] text-emerald-300 font-semibold">Donor verified</p>
                       <p className="mt-3 text-sm font-bold text-emerald-100">
-                        {selectedUserDetails?.donorInfo
-                          ? selectedUserDetails.donorInfo.isVerified
-                            ? "Yes"
-                            : "No"
-                          : "N/A"}
+                        {selectedUserDonorVerified ? "Yes" : "No"}
                       </p>
                     </div>
                     <div className="rounded-xl border border-sky-500/30 bg-sky-500/5 p-4">
                       <p className="text-xs uppercase tracking-[2px] text-sky-300 font-semibold">Total donations</p>
                       <p className="mt-3 text-sm font-bold text-sky-100">
-                        {selectedUserDetails?.donorInfo?.totalDonations ?? 0}
+                        {selectedUserTotalDonations}
                       </p>
                     </div>
                     <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
                       <p className="text-xs uppercase tracking-[2px] text-amber-300 font-semibold">Last donation</p>
                       <p className="mt-3 text-sm font-bold text-amber-100">
-                        {formatAdminDate(selectedUserDetails?.donorInfo?.lastDonationDate ?? undefined)}
+                        {formatAdminDate(selectedUserLastDonationDate ?? undefined)}
                       </p>
                     </div>
                     <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-4">
                       <p className="text-xs uppercase tracking-[2px] text-rose-300 font-semibold">Last units</p>
                       <p className="mt-3 text-sm font-bold text-rose-100">
-                        {renderDetailValue(selectedUserDetails?.donorInfo?.lastDonationUnits)}
+                        {renderDetailValue(selectedUserLastDonationUnits)}
                       </p>
                     </div>
                     <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-4">
@@ -711,14 +844,7 @@ export default function AdminUsersPage() {
                     Based on the last donation date and the current eligibility window.
                   </p>
                 </div>
-              ) : (
-                <div className="mt-6 rounded-2xl border border-sky-500/30 bg-gradient-to-br from-sky-500/10 to-sky-600/5 p-6">
-                  <h3 className="text-lg font-bold text-sky-100">User activity</h3>
-                  <p className="mt-2 text-sm text-sky-200">
-                    No donor activity available for this role.
-                  </p>
-                </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

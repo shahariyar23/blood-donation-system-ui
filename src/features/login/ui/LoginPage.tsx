@@ -5,6 +5,7 @@ import { useLocation } from "../../../hooks/useLocation";
 import { loginApi } from "../service/loginService";
 import { useDispatch } from "react-redux";
 import { setUser } from "../../../redux/slices/userSlice";
+import { transformLocationToLoginFormat, type NominatimResponse } from "../../../utilities/locationTransformer";
 
 // ── Component ──────────────────────────────────────────────
 export default function LoginPage() {
@@ -35,27 +36,46 @@ export default function LoginPage() {
 
     try {
       const locationData = await getLocation();
+      
+      // Transform location data to login format
+      let transformedLocation;
+      if (locationData?.details) {
+        const nominatimResponse: NominatimResponse = {
+          display_name: locationData.displayName || "",
+          lat: locationData.latitude || 0,
+          lon: locationData.longitude || 0,
+          address: locationData.details,
+        };
+        transformedLocation = transformLocationToLoginFormat(
+          nominatimResponse,
+          locationData.latitude,
+          locationData.longitude
+        );
+      } else {
+        // Fallback if location is not available
+        transformedLocation = {
+          displayName: "",
+          road: "",
+          quarter: "",
+          suburb: "",
+          city: "",
+          county: "",
+          state_district: "",
+          state: "",
+          postcode: "",
+          country: "",
+          country_code: "",
+          coordinates: {
+            lat: 0,
+            lng: 0,
+          },
+        };
+      }
+
       const res = await loginApi({
         identifier,
         password,
-        location: {
-          city:
-            locationData?.details?.city ||
-            locationData?.details?.town ||
-            locationData?.details?.village ||
-            locationData?.details?.quarter ||
-            "",
-          country: locationData?.details?.country || "",
-          country_code: locationData?.details?.country_code || "",
-          county: locationData?.details?.county || "",
-          postcode: locationData?.details?.postcode || "",
-          state: locationData?.details?.state || "",
-          state_district: locationData?.details?.state_district || "",
-          coordinates: {
-            lat: locationData?.latitude,
-            lng: locationData?.longitude,
-          },
-        },
+        location: transformedLocation,
       });
       toast.success(res?.message);
       dispatch(setUser({ user: res.data?.user, token: res.data?.accessToken }));

@@ -2,7 +2,6 @@ import { NavLink } from "react-router-dom";
 import {
   Droplets,
   LayoutDashboard,
-  ListChecks,
   LogOut,
   Building2,
   Shield,
@@ -28,7 +27,6 @@ const buildSidebarSections = (usersCount?: number | null, donationsCount?: numbe
     items: [
       { label: "Dashboard", to: "/admin", icon: LayoutDashboard, badge: null },
       { label: "Users", to: "/admin/users", icon: Users2, badge: usersCount == null ? null : String(usersCount) },
-      { label: "Reports", to: "/admin/reports", icon: ListChecks, badge: "5" },
     ],
   },
   {
@@ -42,7 +40,7 @@ const buildSidebarSections = (usersCount?: number | null, donationsCount?: numbe
     label: "Management",
     items: [
       { label: "Hospital", to: "/admin/hospitals", icon: Building2, badge: null },
-      { label: "Blood Bank", to: "/admin/blood-banks", icon: Warehouse, badge: null },
+      { label: "Blood Bank", to: "/admin/blood-bank", icon: Warehouse, badge: null },
     ],
   },
 ];

@@ -104,7 +104,14 @@ const Form: React.FC<FormProps> = ({
   };
 
   const handleDateChange = (name: string, date: Date | null) => {
-    onChange(name, date ? date.toISOString().split("T")[0] : "");
+    if (!date) {
+      onChange(name, "");
+      return;
+    }
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    onChange(name, `${year}-${month}-${day}`);
   };
 
   const renderField = (field: Field) => {
@@ -212,10 +219,16 @@ const Form: React.FC<FormProps> = ({
           </div>
         );
 
-      case "date":
+      case "date": {
+        let parsedDate = null;
+        if (value) {
+          // If value is just YYYY-MM-DD, append T00:00:00 to parse as local time
+          const dateString = value.length === 10 ? `${value}T00:00:00` : value;
+          parsedDate = new Date(dateString);
+        }
         return renderWithIconAndAction(
           <DatePicker
-            selected={value ? new Date(value) : null}
+            selected={parsedDate}
             onChange={(date: Date | null) => handleDateChange(field.name, date)}
             dateFormat="dd/MM/yyyy"
             placeholderText={field.placeholder || "Select date"}
@@ -230,6 +243,7 @@ const Form: React.FC<FormProps> = ({
             disabled={field.disabled || disabled}
           />,
         );
+      }
 
       case "number":
         return renderWithIconAndAction(

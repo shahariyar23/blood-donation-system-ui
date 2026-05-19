@@ -42,6 +42,39 @@ const HospitalDonorSelection = () => {
     notes: "",
   });
 
+  // Helper function to check if donor is actually available
+  const isDonorAvailable = (donor: HospitalDonor) => {
+    if (donor.isAvailable) return true;
+    if (!donor.nextAvailableAt) return false;
+
+    const parseDateOnly = (value: string) => {
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) {
+        return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+      }
+
+      const isoMatch = value.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (isoMatch) {
+        return new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+      }
+
+      const slashMatch = value.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (slashMatch) {
+        return new Date(Number(slashMatch[3]), Number(slashMatch[2]) - 1, Number(slashMatch[1]));
+      }
+
+      return null;
+    };
+
+    const nextAvailableDate = parseDateOnly(donor.nextAvailableAt);
+    if (!nextAvailableDate) return false;
+
+    const today = new Date();
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    return nextAvailableDate.getTime() <= todayDate.getTime();
+  };
+
   const loadDonorByIdentifier = async (identifier: string) => {
     setDonorLoading(true);
     setDonorError(null);
@@ -94,7 +127,7 @@ const HospitalDonorSelection = () => {
       return;
     }
 
-    if (!selectedDonor.isAvailable) {
+    if (!isDonorAvailable(selectedDonor)) {
       setCreateError("Selected donor is unavailable. Please select an available donor.");
       return;
     }
@@ -425,12 +458,12 @@ const HospitalDonorSelection = () => {
                       </div>
                       <span
                         className={`px-2.5 py-1 rounded-full text-[11px] font-semibold ${
-                          donor.isAvailable
+                          isDonorAvailable(donor)
                             ? "bg-emerald-50 text-emerald-700"
                             : "bg-amber-50 text-amber-700"
                         }`}
                       >
-                        {donor.isAvailable ? "Available" : "Unavailable"}
+                        {isDonorAvailable(donor) ? "Available" : "Unavailable"}
                       </span>
                     </div>
 
@@ -465,22 +498,22 @@ const HospitalDonorSelection = () => {
                       )}
                       <button
                         type="button"
-                        disabled={!donor.isAvailable}
+                        disabled={!isDonorAvailable(donor)}
                         onClick={() => {
-                          if (!donor.isAvailable) return;
+                          if (!isDonorAvailable(donor)) return;
                           setSelectedDonor(donor);
                           setForm((prev) => ({ ...prev, bloodType: donor.bloodType }));
                           setCreateError(null);
                         }}
                         className={`ml-auto rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
-                          donor.isAvailable
+                          isDonorAvailable(donor)
                             ? isSelected
                               ? "border-red-200 bg-red-50 text-red-700"
                               : "border-gray-200 text-gray-700 hover:bg-gray-50"
                             : "border-gray-100 text-gray-400 cursor-not-allowed bg-gray-50"
                         }`}
                       >
-                        {donor.isAvailable ? (isSelected ? "Selected" : "Use this donor") : "Unavailable donor"}
+                        {isDonorAvailable(donor) ? (isSelected ? "Selected" : "Use this donor") : "Unavailable donor"}
                       </button>
                     </div>
                   </div>
@@ -597,7 +630,7 @@ const HospitalDonorSelection = () => {
 
             <button
               type="submit"
-              disabled={createLoading || !selectedDonor || !selectedDonor.isAvailable}
+              disabled={createLoading || !selectedDonor || !isDonorAvailable(selectedDonor)}
               className="w-full rounded-md bg-gray-900 text-white py-2.5 text-sm font-semibold hover:bg-black transition disabled:opacity-60"
             >
               {createLoading ? "Creating..." : "Create donation"}

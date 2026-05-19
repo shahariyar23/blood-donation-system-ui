@@ -162,3 +162,10 @@
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.4; }
 }
+
+/* ─────────────────────────────────────────
+   6. THIRD-PARTY OVERRIDES
+───────────────────────────────────────── */
+.react-datepicker-popper {
+  z-index: 9999 !important;
+}

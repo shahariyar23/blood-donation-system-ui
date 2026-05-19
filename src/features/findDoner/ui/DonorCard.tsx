@@ -14,6 +14,14 @@ const DonorCard = ({ donor }: DonorCardProps) => {
   const handleOpen = () => setIsOpen(true);
   const handleClose = () => setIsOpen(false);
 
+  const isLastDonationValid = () => {
+    if (!donor.lastDonation) return true;
+    const lastDonationDate = new Date(donor.lastDonation);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return lastDonationDate <= today;
+  };
+
   return (
     <>
       <div
@@ -94,7 +102,7 @@ const DonorCard = ({ donor }: DonorCardProps) => {
           variant={donor.isAvailable ? "primary" : "ghost"}
           size="xs"
           radius="lg"
-          disabled={!donor.isAvailable || !donor.primarySocialLink}
+          disabled={!donor.isAvailable || !donor.primarySocialLink || !isLastDonationValid()}
           leftIcon={<Icons.Phone className="w-3 h-3" />}
           onClick={(e) => {
             e.stopPropagation();

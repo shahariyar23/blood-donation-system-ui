@@ -14,22 +14,17 @@ interface ImpactStatsProps {
   error?: string;
 }
 
-const fallbackStats = [
-  { value: "12,400+", label: "Lives Saved",          emoji: "❤️" },
-  { value: "8,900+",  label: "Active Donors",         emoji: "🙋" },
-  { value: "64",      label: "Districts Covered",     emoji: "📍" },
-  { value: "98%",     label: "Requests Fulfilled",    emoji: "✅" },
-];
-
-const ImpactStats = ({ stats = [], loading = false, error }: ImpactStatsProps) => {
-  const displayStats = stats && stats.length > 0 ? stats : fallbackStats;
+const ImpactStats = ({
+  stats = [],
+  loading = false,
+  error,
+}: ImpactStatsProps) => {
+  const displayStats = stats ?? [];
 
   return (
-    /* Override section bg to primary red */
     <div className="bg-primary">
       <SectionContainer>
         <MainContainer>
-          {/* Heading — white on red */}
           <SectionHeading
             title="Numbers That Matter"
             description="Every number represents a life touched. Together, we're making Bangladesh healthier — one drop at a time."
@@ -37,51 +32,54 @@ const ImpactStats = ({ stats = [], loading = false, error }: ImpactStatsProps) =
             className="mb-10 sm:mb-14 text-white [&_p]:text-red-100"
           />
 
-          {/* Error State */}
           {error && (
-            <div style={{ 
-              padding: "1rem", 
-              marginBottom: "1rem", 
-              background: "rgba(255,255,255,0.2)", 
-              border: "1px solid rgba(255,255,255,0.3)", 
-              borderRadius: "0.5rem",
-              color: "white",
-              fontSize: "0.875rem",
-              textAlign: "center"
-            }}>
+            <div
+              style={{
+                padding: "1rem",
+                marginBottom: "1rem",
+                background: "rgba(255,255,255,0.2)",
+                border: "1px solid rgba(255,255,255,0.3)",
+                borderRadius: "0.5rem",
+                color: "white",
+                fontSize: "0.875rem",
+                textAlign: "center",
+              }}
+            >
               {error}
             </div>
           )}
 
-          {/* Loading State */}
           {loading ? (
-            <div style={{ 
-              padding: "2rem", 
-              textAlign: "center", 
-              color: "rgba(255,255,255,0.7)" 
-            }}>
+            <div
+              style={{
+                padding: "2rem",
+                textAlign: "center",
+                color: "rgba(255,255,255,0.7)",
+              }}
+            >
               Loading impact stats...
             </div>
+          ) : displayStats.length > 0 ? (
+            <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+              {displayStats.map(({ value, label, emoji }) => (
+                <div
+                  key={label}
+                  className="glass flex flex-col items-center rounded-xl border border-white/20 p-5 text-center text-white transition-all duration-300 hover:bg-white/20 sm:p-6"
+                >
+                  <span className="mb-3 text-3xl sm:text-4xl">{emoji}</span>
+                  <span className="mb-1 font-serif text-2xl font-black sm:text-3xl lg:text-4xl">
+                    {value}
+                  </span>
+                  <span className="text-xxs font-semibold uppercase tracking-widest text-red-100 sm:text-xs">
+                    {label}
+                  </span>
+                </div>
+              ))}
+            </div>
           ) : (
-            <>
-              {/* Stats grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                {displayStats.map(({ value, label, emoji }) => (
-                  <div
-                    key={label}
-                    className="glass border border-white/20 rounded-xl p-5 sm:p-6 flex flex-col items-center text-center text-white hover:bg-white/20 transition-all duration-300"
-                  >
-                    <span className="text-3xl sm:text-4xl mb-3">{emoji}</span>
-                    <span className="font-serif text-2xl sm:text-3xl lg:text-4xl font-black mb-1">
-                      {value}
-                    </span>
-                    <span className="text-red-100 text-xxs sm:text-xs font-semibold uppercase tracking-widest">
-                      {label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </>
+            <div className="rounded-xl border border-white/20 bg-white/10 px-6 py-8 text-center text-white">
+              No impact statistics are available right now.
+            </div>
           )}
         </MainContainer>
       </SectionContainer>

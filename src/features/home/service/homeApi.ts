@@ -27,6 +27,11 @@ export const fetchBloodGroupAvailability = async (location?: string) => {
   return res.data.data;
 };
 
+export const fetchHomeDonorGroups = async () => {
+  const res = await Api.get<ApiEnvelope<BloodGroupData[]>>("/home/donors/groups");
+  return res.data.data;
+};
+
 // Nearby Donors
 export interface NearbyDonor {
   _id: string;
@@ -60,9 +65,49 @@ export const fetchNearbyDonors = async (
   limit?: number
 ) => {
   const res = await Api.get<ApiEnvelope<NearbyDonorsResponse>>(
-    "/donors/nearby",
+    "home/donors",
     { params: { lat, lng, radius, limit } }
   );
+  return res.data.data;
+};
+
+export interface HomeDonor {
+  _id: string;
+  name: string;
+  avatar: string | null;
+  bloodType: string;
+  location: {
+    displayName?: string;
+    road?: string;
+    quarter?: string;
+    suburb?: string;
+    city?: string;
+    county?: string;
+    state_district?: string;
+    state?: string;
+    postcode?: string;
+    country?: string;
+    country_code?: string;
+    coordinates?: {
+      lat?: number | null;
+      lng?: number | null;
+    };
+  };
+  createdAt: string;
+  primarySocialLink: string | null;
+  isAvailable: boolean;
+  totalDonations: number;
+  lastDonationDate: string | null;
+  isDonorVerified: boolean;
+  distanceKm: number | null;
+}
+
+export interface HomeDonorsResponse {
+  donors: HomeDonor[];
+}
+
+export const fetchHomeDonors = async () => {
+  const res = await Api.get<ApiEnvelope<HomeDonor[]>>("home/donors");
   return res.data.data;
 };
 
@@ -97,38 +142,25 @@ export interface BloodRequest {
   };
 }
 
-export interface LatestBloodRequestsResponse {
-  requests: BloodRequest[];
-  pagination?: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}
-
-export const fetchLatestBloodRequests = async (limit?: number, location?: string) => {
-  const res = await Api.get<ApiEnvelope<LatestBloodRequestsResponse>>(
-    "/blood-requests/latest",
-    { params: { limit, location } }
+export const fetchLatestBloodRequests = async (limit = 6, location?: string) => {
+  const res = await Api.get<ApiEnvelope<BloodRequestsResponse>>(
+    "/blood-requests/all",
+    { params: { page: 1, limit, status: "active", location } }
   );
-  return res.data.data;
+  return res.data.data.requests;
 };
 
 // Impact Stats
-export interface StatData {
-  value: string;
-  label: string;
-  emoji: string;
-}
-
 export interface ImpactStatsResponse {
-  stats: StatData[];
+  activeUsers: number;
+  activeDonors: number;
+  successfulDonations: number;
+  collectedBloodRequests: number;
 }
 
 export const fetchImpactStats = async () => {
   const res = await Api.get<ApiEnvelope<ImpactStatsResponse>>(
-    "/stats/impact"
+    "/home/stats"
   );
   return res.data.data;
 };

@@ -1,9 +1,14 @@
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import CustomButton from "../../../shared/button/CustomButton";
 import { Icons } from "../../../shared/icons/Icons";
 import MainContainer from "../../../shared/main-container/MainContainer";
 import SectionContainer from "../../../shared/section-container/SectionContainer";
 import SectionHeading from "../../../shared/section-heading/SectionHeading";
+import Api from "../../../utilities/api";
+import toast from "react-hot-toast";
+import type { RootState } from "../../../redux/store";
 
 interface BloodRequest {
   _id?: string;
@@ -89,7 +94,32 @@ const normalizeRequest = (req: BloodRequest) => {
 
 const LatestBloodRequests = ({ requests = [], loading = false, error }: LatestBloodRequestsProps) => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useSelector((state: RootState) => state.user);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
   const displayRequests = requests && requests.length > 0 ? requests : [];
+
+  const handleRespond = async (requestId: string) => {
+    if (!requestId) return;
+    if (!isAuthenticated) {
+      toast.error("Please login to donate.");
+      return;
+    }
+
+    setRespondingId(requestId);
+    try {
+      await Api.post(`/blood-requests/${requestId}/respond`, {});
+      toast.success("Response recorded successfully! The requester has been notified.");
+    } catch (error: unknown) {
+      console.error("Error responding to request:", error);
+      const message =
+        (error as any)?.response?.data?.message ||
+        (error as any)?.message ||
+        "Failed to respond. Please try again.";
+      toast.error(message);
+    } finally {
+      setRespondingId(null);
+    }
+  };
   return (
     <SectionContainer>
       <MainContainer>
@@ -103,12 +133,12 @@ const LatestBloodRequests = ({ requests = [], loading = false, error }: LatestBl
             description="Active requests from hospitals and families across Bangladesh."
             align="left"
           />
-          <a
-            href="/requests"
+          <Link
+            to="/view-all-request"
             className="shrink-0 text-sm font-semibold text-primary border border-red-200 hover:border-primary hover:bg-red-50 px-4 py-2 rounded-lg transition-all duration-300"
           >
             View All →
-          </a>
+          </Link>
         </div>
 
         {/* Error State */}
@@ -139,7 +169,7 @@ const LatestBloodRequests = ({ requests = [], loading = false, error }: LatestBl
           <>
             {/* Request cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-              {displayRequests?.map((req) => {
+              {displayRequests?.map((req: BloodRequest) => {
                 const normalized = normalizeRequest(req);
 
                 return (
@@ -203,8 +233,16 @@ const LatestBloodRequests = ({ requests = [], loading = false, error }: LatestBl
                     </div>
 
                     {/* CTA */}
-                    <CustomButton variant="primary" size="sm" radius="lg" fullWidth>
-                      I Can Donate
+                    <CustomButton
+                      onClick={() => handleRespond(req._id || "")}
+                      variant="primary"
+                      size="sm"
+                      radius="lg"
+                      fullWidth
+                      loading={req._id ? respondingId === req._id : false}
+                      disabled={!req._id || respondingId !== null}
+                    >
+                      I Can Manage
                     </CustomButton>
                   </div>
                 );

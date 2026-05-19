@@ -1,8 +1,11 @@
+import { useEffect, useState } from "react";
 import CustomButton from "../../../shared/button/CustomButton";
 import { Icons } from "../../../shared/icons/Icons";
 import MainContainer from "../../../shared/main-container/MainContainer";
 import SectionContainer from "../../../shared/section-container/SectionContainer";
 import SectionHeading from "../../../shared/section-heading/SectionHeading";
+import { fetchHomeDonorGroups } from "../service/homeApi";
+import { Link } from "react-router-dom";
 
 interface BloodGroupData {
   group: string;
@@ -16,20 +19,51 @@ interface BloodGroupAvailabilityProps {
   error?: string;
 }
 
-const BloodGroupAvailability = ({ bloodGroups = [], loading = false, error }: BloodGroupAvailabilityProps) => {
-  // Fallback data for development
-  const fallbackBloodGroups: BloodGroupData[] = [
-    { group: "A+", donors: 142, available: true },
-    { group: "A−", donors: 38, available: true },
-    { group: "B+", donors: 189, available: true },
-    { group: "B−", donors: 12, available: false },
-    { group: "O+", donors: 210, available: true },
-    { group: "O−", donors: 9, available: false },
-    { group: "AB+", donors: 67, available: true },
-    { group: "AB−", donors: 5, available: false },
-  ];
+const BloodGroupAvailability = ({
+  bloodGroups = [],
+  loading = false,
+  error,
+}: BloodGroupAvailabilityProps) => {
+  const [apiBloodGroups, setApiBloodGroups] = useState<BloodGroupData[]>([]);
+  const [apiLoading, setApiLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
 
-  const displayBloodGroups = bloodGroups && bloodGroups.length > 0 ? bloodGroups : fallbackBloodGroups;
+  useEffect(() => {
+    let mounted = true;
+
+    const loadBloodGroups = async () => {
+      setApiLoading(true);
+      setApiError("");
+
+      try {
+        const result = await fetchHomeDonorGroups();
+        if (!mounted) return;
+        setApiBloodGroups(result);
+      } catch (err) {
+        if (!mounted) return;
+        setApiError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load blood group availability",
+        );
+      } finally {
+        if (mounted) {
+          setApiLoading(false);
+        }
+      }
+    };
+
+    void loadBloodGroups();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const displayBloodGroups =
+    apiBloodGroups.length > 0 ? apiBloodGroups : (bloodGroups ?? []);
+  const loadingState = loading || apiLoading;
+  const errorState = error || apiError;
 
   return (
     <SectionContainer>
@@ -43,30 +77,34 @@ const BloodGroupAvailability = ({ bloodGroups = [], loading = false, error }: Bl
         />
 
         {/* Error State */}
-        {error && (
-          <div style={{ 
-            padding: "1rem", 
-            marginBottom: "1rem", 
-            background: "#fee", 
-            border: "1px solid #c0392b", 
-            borderRadius: "0.5rem",
-            color: "#c0392b",
-            fontSize: "0.875rem"
-          }}>
-            {error}
+        {errorState && (
+          <div
+            style={{
+              padding: "1rem",
+              marginBottom: "1rem",
+              background: "#fee",
+              border: "1px solid #c0392b",
+              borderRadius: "0.5rem",
+              color: "#c0392b",
+              fontSize: "0.875rem",
+            }}
+          >
+            {errorState}
           </div>
         )}
 
         {/* Loading State */}
-        {loading ? (
-          <div style={{ 
-            padding: "2rem", 
-            textAlign: "center", 
-            color: "#888" 
-          }}>
+        {loadingState ? (
+          <div
+            style={{
+              padding: "2rem",
+              textAlign: "center",
+              color: "#888",
+            }}
+          >
             Loading blood group data...
           </div>
-        ) : (
+        ) : displayBloodGroups.length > 0 ? (
           <>
             {/* Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-5">
@@ -75,14 +113,17 @@ const BloodGroupAvailability = ({ bloodGroups = [], loading = false, error }: Bl
                   key={group}
                   className={`donor-card flex flex-col items-center text-center border-2 cursor-pointer
                     hover:-translate-y-1
-                    ${available
-                      ? "border-red-100 hover:border-primary"
-                      : "border-gray-100 opacity-60"
+                    ${
+                      available
+                        ? "border-red-100 hover:border-primary"
+                        : "border-gray-100 opacity-60"
                     }`}
                 >
                   {/* Drop icon */}
-                  <span className={`text-3xl mb-2 ${available ? "text-primary" : "text-gray-300"}`}>
-                    <Icons.Blood/>
+                  <span
+                    className={`text-3xl mb-2 ${available ? "text-primary" : "text-gray-300"}`}
+                  >
+                    <Icons.Blood />
                   </span>
 
                   {/* Group label */}
@@ -94,16 +135,19 @@ const BloodGroupAvailability = ({ bloodGroups = [], loading = false, error }: Bl
                   </h3>
 
                   {/* Count */}
-                  <p className={`text-xs font-semibold mb-2 ${available ? "text-primary" : "text-gray-400"}`}>
+                  <p
+                    className={`text-xs font-semibold mb-2 ${available ? "text-primary" : "text-gray-400"}`}
+                  >
                     {donors} donors
                   </p>
 
                   {/* Status badge */}
                   <span
                     className={`text-xxs font-bold uppercase tracking-wide px-2.5 py-0.5 rounded-full
-                      ${available
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-primary"
+                      ${
+                        available
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-primary"
                       }`}
                   >
                     {available ? "Available" : "Urgent Need"}
@@ -115,13 +159,18 @@ const BloodGroupAvailability = ({ bloodGroups = [], loading = false, error }: Bl
             {/* CTA */}
             <div className="mt-10 text-center">
               <p className="text-sm text-gray-500 mb-4">
-                Can't find your blood group? Register as a donor and help close the gap.
+                Can't find your blood group? Register as a donor and help close
+                the gap.
               </p>
               <CustomButton variant="primary" size="md" radius="full">
-                Register as Donor
+                <Link to="register">Register as Donor</Link>
               </CustomButton>
             </div>
           </>
+        ) : (
+          <div className="rounded-xl border border-red-100 bg-white p-8 text-center text-gray-600 shadow-sm">
+            Blood group availability data is not available right now.
+          </div>
         )}
       </MainContainer>
     </SectionContainer>

@@ -1,18 +1,26 @@
 // ── Types ──────────────────────────────────────────────
 export interface BloodBank {
-  id:          number;
+  id:          number | string;
   name:        string;
   address:     string;
   area:        string;
   district:    string;
   phone:       string;
   email:       string;
+  website?:    string | null;
   distance:    number;  // km
   isOpen:      boolean;
   hours:       string;
   rating:      number;
   totalUnits:  number;
   availability: Record<string, "high" | "medium" | "low" | "unavailable">;
+  source?: {
+    name: string;
+    label: string;
+    priority: number;
+  };
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface BankFilterState {

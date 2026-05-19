@@ -23,8 +23,29 @@ export interface AdminDashboardStats {
   totalBloodRequests: number;
 }
 
+export interface AdminDashboardCharts {
+  monthlyTrend?: Array<{
+    month: string;
+    donations: number;
+    requests: number;
+  }>;
+  weeklyDonorRegistrations?: Array<{
+    date: string;
+    count: number;
+  }>;
+  bloodTypeDistribution?: Array<{
+    bloodType: string;
+    count: number;
+  }>;
+  reportStatusBreakdown?: Array<{
+    status: string;
+    count: number;
+  }>;
+}
+
 export interface AdminDashboardData {
   stats: AdminDashboardStats;
+  charts?: AdminDashboardCharts;
   recentUsers: AdminUser[];
   recentReports: AdminReport[];
 }
@@ -43,11 +64,47 @@ export interface AdminUser {
   email: string;
   phone?: string;
   avatar?: string | null;
+  gender?: string | null;
   role: "admin" | "donor" | "user" | "hospital";
   bloodType?: string | null;
   isVerified?: boolean;
   isActive?: boolean;
+  isAvailable?: boolean;
   isDonorVerified?: boolean;
+  isVerifyDonor?: boolean;
+  totalDonations?: number;
+  lastDonationDate?: string | null;
+  lastDonationUnits?: number | null;
+  totalReceived?: number;
+  lastReceivedDate?: string | null;
+  location?: {
+    coordinates?: {
+      lat?: number | null;
+      lng?: number | null;
+    };
+    displayName?: string;
+    road?: string;
+    quarter?: string;
+    suburb?: string;
+    city?: string;
+    county?: string;
+    state_district?: string;
+    state?: string;
+    postcode?: string;
+    country?: string;
+    country_code?: string;
+  };
+  socialLinks?: {
+    facebook?: string | null;
+    instagram?: string | null;
+    twitter?: string | null;
+  };
+  donor?: {
+    userId?: string;
+    isAvailable?: boolean;
+    totalDonations?: number;
+    isVerified?: boolean;
+  };
   communityFlags?: number;
   createdAt?: string;
   updatedAt?: string;
@@ -160,7 +217,9 @@ export interface AdminMe {
 // --- Admin additional types ---
 export interface AdminBloodRequest {
   _id: string;
-  hospital: {
+  hospital?:
+    | string
+    | {
     _id: string;
     hospitalName: string;
     email?: string;
@@ -168,21 +227,78 @@ export interface AdminBloodRequest {
     address?: string;
     city?: string;
   };
+  requestedBy?: {
+    _id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    avatar?: string | null;
+    role?: string;
+    bloodType?: string | null;
+    isVerified?: boolean;
+    isActive?: boolean;
+    location?: AdminUser["location"];
+    totalReceived?: number;
+    createdAt?: string;
+  };
   bloodType: string;
   unitsNeeded: number;
-  urgencyLevel: "normal" | "high" | "critical";
+  urgencyLevel: "planned" | "urgent" | "critical" | "normal" | "high" | string;
+  urgency?: string;
   reason?: string;
+  notes?: string;
   patientName?: string;
+  location?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  locationDetails?: string | null;
+  phone?: string;
   status: string;
+  isExpired?: boolean;
+  agreeTerms?: boolean;
   respondents?: number;
+  respondedDonors?: Array<AdminUser & {
+    donor?: {
+      _id?: string;
+      isAvailable?: boolean;
+      isVerified?: boolean;
+      totalDonations?: number;
+      lastDonationDate?: string | null;
+      nextAvailableAt?: string | null;
+    } | null;
+  }>;
+  fulfilledBy?: AdminUser | null;
   fulfilledUnits?: number;
+  neededBy?: string;
   createdAt?: string;
+  updatedAt?: string;
   expiresAt?: string;
 }
 
 export interface AdminBloodRequestsResponse {
   requests: AdminBloodRequest[];
   pagination: AdminPagination;
+}
+
+export interface AdminBloodBankApiEntry {
+  name: string;
+  label: string;
+  baseUrl: string;
+  apiKey: string;
+  isActive: boolean;
+  priority: number;
+}
+
+export interface AdminBloodBankSettings {
+  isVisible: boolean;
+  isMaintenance: boolean;
+  maintenanceMessage: string;
+  sectionTitle: string;
+  notice: string;
+  allowedBloodGroups: string[];
+  maxResults: number;
+  requestTimeoutMs: number;
+  apis: AdminBloodBankApiEntry[];
 }
 
 export interface AdminDonation {
