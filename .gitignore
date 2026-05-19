@@ -1,59 +1,27 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-pacakage-lock.json
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-# ── Dependencies ───────────────────────────────────────
+# Dependencies
 node_modules/
 
-# ── Build output ───────────────────────────────────────
-dist/
-
-# ── Environment variables ──────────────────────────────
+# Environment variables
 .env
 .env.local
 .env.development
 .env.production
 
-# ── Uploads ────────────────────────────────────────────
-# uploads/
+# Build output
+dist/
+build/
 
-# ── Logs ───────────────────────────────────────────────
-logs/
+# Logs
 *.log
-npm-debug.log*
 
-# ── TypeScript cache ───────────────────────────────────
-*.tsbuildinfo
+# Editor / IDE configs (ignore these tool files)
+.cursor/
+.jetro/
+.windsurfrules
+.mcp.json
+AGENT.md
+CLAUDE.md
 
-# ── OS files ───────────────────────────────────────────
+# OS files
 .DS_Store
 Thumbs.db
-
-# ── IDE files ──────────────────────────────────────────
-.vscode/
-.idea/
-
-# ── Coverage ───────────────────────────────────────────
-coverage/
-
