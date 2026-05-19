@@ -27,7 +27,7 @@ export function StepHealth({
     <div style={styles.section}>
       <div style={styles.sectionTitle}>Health information</div>
 
-      <Field label="Blood type" error={errors.bloodType}>
+      <Field label="Blood type" error={errors.bloodType} isRequired>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "8px" }}>
           {BLOOD_TYPES.map((bt) => (
             <button
@@ -47,7 +47,7 @@ export function StepHealth({
         </div>
       </Field>
 
-      <Field label="Gender" error={errors.gender}>
+      <Field label="Gender" error={errors.gender} isRequired>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
           {["male", "female"].map((g) => (
             <button
@@ -55,7 +55,7 @@ export function StepHealth({
               key={g}
               onClick={() => {
                 set("gender", g);
-                focusField("age");
+                focusField("weight");
               }}
               style={{
                 ...styles.selectBtn,
@@ -71,22 +71,7 @@ export function StepHealth({
         </div>
       </Field>
 
-      <div style={styles.grid3}>
-        <Field label="Age" error={errors.age}>
-          <input
-            ref={setFieldRef("age")}
-            name="age"
-            style={{ ...styles.input, ...(errors.age ? styles.inputError : {}) }}
-            type="number"
-            value={form.age}
-            onChange={(e) => set("age", e.target.value)}
-            onKeyDown={(e) => handleInputKeyDown(e, "age")}
-            placeholder="25"
-            min={18}
-            max={65}
-          />
-          <span style={styles.hint}>18–65 years</span>
-        </Field>
+      <div style={styles.grid2}>
         <Field label="Weight (kg)" error={errors.weight}>
           <input
             ref={setFieldRef("weight")}
@@ -101,7 +86,7 @@ export function StepHealth({
           />
           <span style={styles.hint}>Min 50 kg</span>
         </Field>
-        <Field label="Date of birth">
+        <Field label="Date of birth" isRequired>
           <input
             ref={setFieldRef("dateOfBirth")}
             name="dateOfBirth"

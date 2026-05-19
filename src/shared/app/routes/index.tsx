@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import MainLayout from "../../layout/MainLayout";
 import HospitalLayout from "../../layout/HospitalLayout";
+import AdminLayout from "../../../features/admin/layout/AdminLayout";
 import Home from "../../../features/home/container/Home";
 import NotFound from "../../../features/not-found/NotFound";
 import FindDonorPage from "../../../features/findDoner/container/Finddonorpage";
@@ -8,6 +9,16 @@ import LoginPage from "../../../features/login/ui/LoginPage";
 import HospitalLoginPage from "../../../features/hospital/ui/HospitalLoginPage";
 import HospitalDashboard from "../../../features/hospital/ui/HospitalDashboard";
 import HospitalDonorSelection from "../../../features/hospital/ui/HospitalDonorSelection";
+import AdminDashboard from "../../../features/admin/ui/AdminDashboard";
+import AdminLoginPage from "../../../features/admin/ui/AdminLoginPage";
+import AdminUsersPage from "../../../features/admin/ui/AdminUsersPage";
+import AdminReportsPage from "../../../features/admin/ui/AdminReportsPage";
+import AdminBloodRequestsPage from "../../../features/admin/ui/AdminBloodRequestsPage";
+import AdminDonationsPage from "../../../features/admin/ui/AdminDonationsPage";
+import AdminVerificationsPage from "../../../features/admin/ui/AdminVerificationsPage";
+import AdminSettingsPage from "../../../features/admin/ui/AdminSettingsPage";
+import AdminHospitalsPage from "../../../features/admin/ui/AdminHospitalsPage";
+import AdminBloodBanksPage from "../../../features/admin/ui/AdminBloodBanksPage";
 import DonateBlood from "../../../features/donateBlood/ui/DonateBlood";
 import RequestBloodPage from "../../../features/requestBlood/ui/RequestBloodPage";
 import BloodBankPage from "../../../features/bloodBank/ui/BloodBankPage";
@@ -15,6 +26,7 @@ import AboutPage from "../../../features/about/ui/About";
 import GuestRoute from "./GuestRoute";
 import ProtectedRoute from "./ProtectedRoute";
 import HospitalRoute from "./HospitalRoute";
+import AdminRoute from "./AdminRoute";
 import RegisterPage from "../../../features/register/ui/RegisterPage";
 import ForgotPasswordPage from "../../../features/forgotPassword/ui/ForgotPassword";
 import ResetPasswordPage from "../../../features/restPassword/ui/ResetPasswordPage";
@@ -22,6 +34,8 @@ import ProfilePage from "../../../features/profile/component/ProfilePage";
 import MyDonationsPage from "../../../features/myDonation/ui/MyDonation";
 import SettingsPage from "../../../features/mySetting/ui/MySettingPage";
 import VerifyOtpPage from "../../../features/register/ui/VerifyOtpPage";
+import ViewAllRequestBlood from "../../../features/requestBlood/ui/ViewAllRequestBlood";
+import MyBloodRequestsPage from "../../../features/myBloodRequest/ui/MyBloodRequestsPage";
 
 export const router = createBrowserRouter([
   {
@@ -29,6 +43,22 @@ export const router = createBrowserRouter([
     element: (
       <GuestRoute>
         <HospitalLoginPage />
+      </GuestRoute>
+    ),
+  },
+  {
+    path: "/hospital/reset-password",
+    element: (
+      <GuestRoute>
+        <ResetPasswordPage accountType="hospital" />
+      </GuestRoute>
+    ),
+  },
+  {
+    path: "/admin/login",
+    element: (
+      <GuestRoute>
+        <AdminLoginPage />
       </GuestRoute>
     ),
   },
@@ -50,6 +80,92 @@ export const router = createBrowserRouter([
           <HospitalRoute>
             <HospitalDonorSelection />
           </HospitalRoute>
+        ),
+      },
+    ],
+  },
+  {
+    path: "/admin",
+    element: <AdminLayout />,
+    children: [
+      {
+        index: true,
+        element: (
+          <AdminRoute>
+            <AdminDashboard />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "users",
+        element: (
+          <AdminRoute>
+            <AdminUsersPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "reports",
+        element: (
+          <AdminRoute>
+            <AdminReportsPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "blood-requests",
+        element: (
+          <AdminRoute>
+            <AdminBloodRequestsPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "donations",
+        element: (
+          <AdminRoute>
+            <AdminDonationsPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "verifications",
+        element: (
+          <AdminRoute>
+            <AdminVerificationsPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "settings",
+        element: (
+          <AdminRoute>
+            <AdminSettingsPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "hospitals",
+        element: (
+          <AdminRoute>
+            <AdminHospitalsPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "blood-bank",
+        element: (
+          <AdminRoute>
+            <AdminBloodBanksPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "blood-banks",
+        element: (
+          <AdminRoute>
+            <AdminBloodBanksPage />
+          </AdminRoute>
         ),
       },
     ],
@@ -86,12 +202,12 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: "/view-all-request",
+        element: <ViewAllRequestBlood />,
+      },
+      {
         path: "/blood-banks",
-        element: (
-          <ProtectedRoute>
-            <BloodBankPage />
-          </ProtectedRoute>
-        ),
+        element: <BloodBankPage />,
       },
       {
         path: "/profile",
@@ -106,6 +222,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <MyDonationsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/my-blood-request",
+        element: (
+          <ProtectedRoute>
+            <MyBloodRequestsPage />
           </ProtectedRoute>
         ),
       },

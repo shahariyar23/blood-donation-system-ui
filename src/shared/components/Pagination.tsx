@@ -44,14 +44,14 @@ const Pagination = ({
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 mt-10">
+    <div className="mt-10 flex flex-col items-center gap-4 rounded-2xl bg-[#1a1d24] px-4 py-5 shadow-[0_10px_28px_rgba(0,0,0,0.18)]">
 
       {/* Showing X - Y of Z */}
-      <p className="text-sm text-gray-400">
+      <p className="text-sm text-zinc-400">
         Showing{" "}
-        <span className="text-secondary font-semibold">{startItem}–{endItem}</span>
+        <span className="font-semibold text-zinc-100">{startItem}–{endItem}</span>
         {" "}of{" "}
-        <span className="text-secondary font-semibold">{totalItems}</span>
+        <span className="font-semibold text-zinc-100">{totalItems}</span>
         {" "}results
       </p>
 
@@ -64,17 +64,18 @@ const Pagination = ({
           disabled={currentPage === 1}
           className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200
             ${currentPage === 1
-              ? "text-gray-300 cursor-not-allowed"
-              : "text-secondary border border-gray-200 hover:bg-secondary hover:text-white hover:border-secondary"
+              ? "cursor-not-allowed border border-white/10 text-zinc-600"
+              : "border border-white/15 bg-white/5 text-zinc-200 hover:border-rose-400/60 hover:bg-rose-500/15 hover:text-white"
             }`}
+          aria-label="Previous page"
         >
-          <Icons.ArrowBack size={14} />
+          <Icons.ArrowForward size={14} className="rotate-180" />
         </button>
 
         {/* Page numbers */}
         {getPageNumbers().map((page, i) =>
           page === "..." ? (
-            <span key={`ellipsis-${i}`} className="w-9 h-9 flex items-center justify-center text-gray-400 text-sm">
+            <span key={`ellipsis-${i}`} className="w-9 h-9 flex items-center justify-center text-zinc-500 text-sm">
               …
             </span>
           ) : (
@@ -83,9 +84,10 @@ const Pagination = ({
               onClick={() => onPageChange(page as number)}
               className={`w-9 h-9 rounded-full text-sm font-semibold transition-all duration-200
                 ${currentPage === page
-                  ? "bg-secondary text-white shadow-md scale-105"
-                  : "text-secondary border border-gray-200 hover:bg-secondary hover:text-white hover:border-secondary"
+                  ? "bg-rose-500 text-white shadow-[0_10px_20px_rgba(244,63,94,0.35)] scale-105"
+                  : "border border-white/15 bg-white/5 text-zinc-200 hover:border-rose-400/60 hover:bg-rose-500/15 hover:text-white"
                 }`}
+              aria-current={currentPage === page ? "page" : undefined}
             >
               {page}
             </button>
@@ -98,9 +100,10 @@ const Pagination = ({
           disabled={currentPage === totalPages}
           className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200
             ${currentPage === totalPages
-              ? "text-gray-300 cursor-not-allowed"
-              : "text-secondary border border-gray-200 hover:bg-secondary hover:text-white hover:border-secondary"
+              ? "cursor-not-allowed border border-white/10 text-zinc-600"
+              : "border border-white/15 bg-white/5 text-zinc-200 hover:border-rose-400/60 hover:bg-rose-500/15 hover:text-white"
             }`}
+          aria-label="Next page"
         >
           <Icons.ArrowForward size={14} />
         </button>

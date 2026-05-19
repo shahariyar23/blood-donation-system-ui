@@ -35,7 +35,7 @@ Api.interceptors.request.use(
     const isHospitalApi =
       requestUrl.startsWith("/hospital") ||
       requestUrl.startsWith("/donor") ||
-      requestUrl.startsWith("/blood");
+      requestUrl.startsWith("/blood-bank");
 
     const token = isHospitalApi
       ? state.hospital.token || state.user.token
@@ -58,6 +58,7 @@ Api.interceptors.response.use(
     const requestUrl = originalRequest?.url ?? "";
     const shouldBypassAuthRecovery =
       requestUrl.includes("/auth/login") ||
+      requestUrl.includes("/admin/auth/login") ||
       requestUrl.includes("/auth/register") ||
       requestUrl.includes("/auth/forgot-password") ||
       requestUrl.includes("/auth/reset-password") ||
@@ -69,7 +70,7 @@ Api.interceptors.response.use(
     const isHospitalApi =
       requestUrl.startsWith("/hospital") ||
       requestUrl.startsWith("/donor") ||
-      requestUrl.startsWith("/blood");
+      requestUrl.startsWith("/blood-bank");
 
     // skip refresh endpoint itself
     if (

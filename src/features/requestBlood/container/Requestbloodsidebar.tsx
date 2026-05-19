@@ -1,10 +1,10 @@
 import { Icons } from "../../../shared/icons/Icons";
 
 const urgencyLevels = [
-  { color: "bg-red-500",    label: "Critical",  desc: "Within hours — life threatening"  },
-  { color: "bg-orange-400", label: "Urgent",    desc: "Within 24 hours"                  },
-  { color: "bg-yellow-400", label: "Moderate",  desc: "Within 3 days"                    },
-  { color: "bg-green-500",  label: "Planned",   desc: "Within a week — scheduled surgery"},
+  { color: "bg-red-500", label: "Critical", desc: "Within hours — life threatening" },
+  { color: "bg-orange-400", label: "Urgent", desc: "Within 24 hours" },
+  { color: "bg-yellow-400", label: "Moderate", desc: "Within 3 days" },
+  { color: "bg-green-500", label: "Planned", desc: "Within a week — scheduled surgery" },
 ];
 
 const guidelines = [
@@ -64,11 +64,11 @@ const RequestBloodSidebar = () => {
           Can't find a donor? Call our 24/7 emergency line.
         </p>
         <a
-          href="tel:+8801XXXXXXXXX"
+          href="tel:+8801761208866"
           className="block bg-white text-primary font-bold text-sm text-center
             py-2.5 rounded-xs hover:bg-red-50 transition-colors"
         >
-          +880 1X-XXXX-XXXX
+          +880 1761208866
         </a>
       </div>
     </div>

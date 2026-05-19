@@ -12,6 +12,7 @@ export interface LocationDetails {
   postcode?: string;
   country?: string;
   country_code?: string;
+  [key: string]: string | undefined;
 }
 
 export interface LocationResult {

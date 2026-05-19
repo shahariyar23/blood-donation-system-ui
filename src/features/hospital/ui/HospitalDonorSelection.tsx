@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icons } from "../../../shared/icons/Icons";
 import {
   mapHospitalDonor,
@@ -7,6 +7,7 @@ import {
 } from "../service/hospitalData";
 import {
   createHospitalDonation,
+  fetchHospitalIdentifierSuggestions,
   fetchHospitalDonorByIdentifier,
 } from "../service/hospitalService";
 
@@ -15,6 +16,16 @@ const HospitalDonorSelection = () => {
   const [donorLoading, setDonorLoading] = useState(false);
   const [donorError, setDonorError] = useState<string | null>(null);
   const [donorQuery, setDonorQuery] = useState("");
+  const [donorSuggestions, setDonorSuggestions] = useState<
+    Array<{
+      identifier: string;
+      title: string;
+      subtitle: string;
+    }>
+  >([]);
+  const [donorSuggestionsOpen, setDonorSuggestionsOpen] = useState(false);
+  const [donorSuggestionsLoading, setDonorSuggestionsLoading] = useState(false);
+  const [donorSuggestionHint, setDonorSuggestionHint] = useState<string | null>(null);
   const [selectedDonor, setSelectedDonor] = useState<HospitalDonor | null>(null);
   const [request, setRequest] = useState<HospitalDonationRequestApi | null>(null);
 
@@ -30,6 +41,39 @@ const HospitalDonorSelection = () => {
     reason: "",
     notes: "",
   });
+
+  // Helper function to check if donor is actually available
+  const isDonorAvailable = (donor: HospitalDonor) => {
+    if (donor.isAvailable) return true;
+    if (!donor.nextAvailableAt) return false;
+
+    const parseDateOnly = (value: string) => {
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) {
+        return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+      }
+
+      const isoMatch = value.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (isoMatch) {
+        return new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+      }
+
+      const slashMatch = value.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (slashMatch) {
+        return new Date(Number(slashMatch[3]), Number(slashMatch[2]) - 1, Number(slashMatch[1]));
+      }
+
+      return null;
+    };
+
+    const nextAvailableDate = parseDateOnly(donor.nextAvailableAt);
+    if (!nextAvailableDate) return false;
+
+    const today = new Date();
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    return nextAvailableDate.getTime() <= todayDate.getTime();
+  };
 
   const loadDonorByIdentifier = async (identifier: string) => {
     setDonorLoading(true);
@@ -83,7 +127,7 @@ const HospitalDonorSelection = () => {
       return;
     }
 
-    if (!selectedDonor.isAvailable) {
+    if (!isDonorAvailable(selectedDonor)) {
       setCreateError("Selected donor is unavailable. Please select an available donor.");
       return;
     }
@@ -149,6 +193,68 @@ const HospitalDonorSelection = () => {
       setCreateLoading(false);
     }
   };
+
+  useEffect(() => {
+    const query = donorQuery.trim();
+    const digits = query.replace(/\D/g, "");
+    const isDigitsOnly = Boolean(digits) && digits === query;
+
+    if (!query) {
+      setDonorSuggestionHint(null);
+      setDonorSuggestions([]);
+      setDonorSuggestionsLoading(false);
+      return;
+    }
+
+    const shouldSuggest = isDigitsOnly ? digits.length >= 3 : query.length >= 1;
+    if (!shouldSuggest) {
+      setDonorSuggestionHint(null);
+      setDonorSuggestions([]);
+      setDonorSuggestionsLoading(false);
+      return;
+    }
+
+    let isActive = true;
+    setDonorSuggestionsLoading(true);
+    setDonorSuggestionHint(null);
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const suggestions = await fetchHospitalIdentifierSuggestions(query);
+        console.log("Suggestions received:", suggestions);
+        const mapped = suggestions.slice(0, 6).map((item) => {
+          const title = item.name ? `${item.name} (${item.role})` : item.identifier;
+          const subtitle = [item.email, item.phone].filter(Boolean).join(" • ");
+          return {
+            identifier: item.identifier,
+            title,
+            subtitle: subtitle || item.identifier,
+          };
+        });
+
+        if (!isActive) return;
+        setDonorSuggestions(mapped);
+        setDonorSuggestionHint(mapped.length === 0 ? "No suggestion found." : null);
+      } catch (error) {
+        console.error("Suggestions API error:", error);
+        if (!isActive) return;
+        setDonorSuggestions([]);
+        setDonorSuggestionHint("Suggestion is unavailable.");
+      } finally {
+        if (isActive) {
+          setDonorSuggestionsLoading(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [donorQuery]);
+
+  const donorSuggestionsEnabled =
+    donorQuery.trim().length >= 1;
 
   return (
     <div className="space-y-6">
@@ -264,10 +370,51 @@ const HospitalDonorSelection = () => {
               <Icons.Search className="w-4 h-4 text-red-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 value={donorQuery}
-                onChange={(e) => setDonorQuery(e.target.value)}
+                onChange={(e) => {
+                  setDonorQuery(e.target.value);
+                  setDonorSuggestionsOpen(true);
+                }}
+                onFocus={() => setDonorSuggestionsOpen(true)}
+                onBlur={() => window.setTimeout(() => setDonorSuggestionsOpen(false), 150)}
                 placeholder="Search by email or phone"
                 className="w-full rounded-full border border-gray-200 bg-white pl-10 pr-4 py-2.5 text-sm text-gray-700 focus:border-red-400 focus:outline-none"
               />
+
+              {donorSuggestionsOpen && donorQuery.trim() && donorSuggestionsEnabled && (
+                <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
+                  {donorSuggestionsLoading ? (
+                    <div className="px-4 py-3 text-sm text-gray-500">Searching...</div>
+                  ) : donorSuggestionHint ? (
+                    <div className="px-4 py-3 text-sm text-gray-500">{donorSuggestionHint}</div>
+                  ) : donorSuggestions.length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-gray-500">No match found. Try full email or phone.</div>
+                  ) : (
+                    <div className="max-h-64 overflow-y-auto">
+                      {donorSuggestions.map((item) => (
+                        <button
+                          key={item.identifier}
+                          type="button"
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            setDonorQuery(item.identifier);
+                            setDonorSuggestionsOpen(false);
+                            void loadDonorByIdentifier(item.identifier);
+                          }}
+                          className="flex w-full items-start justify-between gap-3 border-b border-gray-100 px-4 py-3 text-left transition hover:bg-gray-50"
+                        >
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                            <p className="mt-1 text-xs text-gray-500">{item.subtitle}</p>
+                          </div>
+                          <span className="mt-1 rounded-full bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-600">
+                            Select
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <button
               type="submit"
@@ -311,12 +458,12 @@ const HospitalDonorSelection = () => {
                       </div>
                       <span
                         className={`px-2.5 py-1 rounded-full text-[11px] font-semibold ${
-                          donor.isAvailable
+                          isDonorAvailable(donor)
                             ? "bg-emerald-50 text-emerald-700"
                             : "bg-amber-50 text-amber-700"
                         }`}
                       >
-                        {donor.isAvailable ? "Available" : "Unavailable"}
+                        {isDonorAvailable(donor) ? "Available" : "Unavailable"}
                       </span>
                     </div>
 
@@ -351,22 +498,22 @@ const HospitalDonorSelection = () => {
                       )}
                       <button
                         type="button"
-                        disabled={!donor.isAvailable}
+                        disabled={!isDonorAvailable(donor)}
                         onClick={() => {
-                          if (!donor.isAvailable) return;
+                          if (!isDonorAvailable(donor)) return;
                           setSelectedDonor(donor);
                           setForm((prev) => ({ ...prev, bloodType: donor.bloodType }));
                           setCreateError(null);
                         }}
                         className={`ml-auto rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${
-                          donor.isAvailable
+                          isDonorAvailable(donor)
                             ? isSelected
                               ? "border-red-200 bg-red-50 text-red-700"
                               : "border-gray-200 text-gray-700 hover:bg-gray-50"
                             : "border-gray-100 text-gray-400 cursor-not-allowed bg-gray-50"
                         }`}
                       >
-                        {donor.isAvailable ? (isSelected ? "Selected" : "Use this donor") : "Unavailable donor"}
+                        {isDonorAvailable(donor) ? (isSelected ? "Selected" : "Use this donor") : "Unavailable donor"}
                       </button>
                     </div>
                   </div>
@@ -483,7 +630,7 @@ const HospitalDonorSelection = () => {
 
             <button
               type="submit"
-              disabled={createLoading || !selectedDonor || !selectedDonor.isAvailable}
+              disabled={createLoading || !selectedDonor || !isDonorAvailable(selectedDonor)}
               className="w-full rounded-md bg-gray-900 text-white py-2.5 text-sm font-semibold hover:bg-black transition disabled:opacity-60"
             >
               {createLoading ? "Creating..." : "Create donation"}

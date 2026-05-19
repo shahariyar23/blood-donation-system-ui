@@ -4,6 +4,7 @@ import type {
   HospitalDonationApi,
   HospitalDonationListResponse,
   HospitalDonationRequestSearchData,
+  HospitalIdentifierSuggestionsResponse,
 } from "./hospitalData";
 
 interface HospitalDonationListParams {
@@ -120,4 +121,14 @@ export const fetchHospitalDonorByIdentifier = async (
     }
   );
   return res.data.data;
+};
+
+export const fetchHospitalIdentifierSuggestions = async (query: string) => {
+  const res = await Api.get<ApiEnvelope<HospitalIdentifierSuggestionsResponse>>(
+    "/hospital/donations/search-suggestions",
+    {
+      params: { q: query },
+    }
+  );
+  return res.data.data.suggestions ?? [];
 };

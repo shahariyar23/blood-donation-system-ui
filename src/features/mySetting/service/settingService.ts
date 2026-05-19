@@ -50,7 +50,59 @@ interface AccountActionResponse {
   message?: string;
 }
 
+export interface NotificationSettings {
+  bloodRequests: boolean;
+  donorResponses: boolean;
+  requestFulfilled: boolean;
+  systemUpdates: boolean;
+  emailDigest: boolean;
+  smsAlerts: boolean;
+}
+
+export interface PrivacySettings {
+  showPhone: boolean;
+  showEmail: boolean;
+  showLocation: boolean;
+  showDonations: boolean;
+  showSocials: boolean;
+}
+
+export interface UserSettings {
+  notifications: NotificationSettings;
+  privacy: PrivacySettings;
+}
+
 // ── API Calls ──────────────────────────────────────────────
+
+// GET /api/auth/settings
+export const getSettingsApi = async (): Promise<UserSettings> => {
+  const res = await api.get("/auth/settings");
+  return res.data.data;
+};
+
+// PATCH /api/auth/settings
+export const updateSettingsApi = async (
+  payload: Partial<UserSettings>,
+): Promise<UserSettings> => {
+  const res = await api.patch("/auth/settings", payload);
+  return res.data.data;
+};
+
+// PATCH /api/auth/settings/notifications
+export const updateNotificationSettingsApi = async (
+  payload: Partial<NotificationSettings>,
+): Promise<NotificationSettings> => {
+  const res = await api.patch("/auth/settings/notifications", payload);
+  return res.data.data.notifications ?? res.data.data;
+};
+
+// PATCH /api/auth/settings/privacy
+export const updatePrivacySettingsApi = async (
+  payload: Partial<PrivacySettings>,
+): Promise<PrivacySettings> => {
+  const res = await api.patch("/auth/settings/privacy", payload);
+  return res.data.data.privacy ?? res.data.data;
+};
 
 // GET /api/auth/sessions
 export const getSessionsApi = async (): Promise<SessionsResponse> => {
@@ -72,7 +124,7 @@ export const logoutOtherSessionsApi = async (): Promise<LogoutOthersResponse> =>
 
 // POST /api/v1/auth/deactivate-account
 export const deactivateAccountApi = async (): Promise<AccountActionResponse> => {
-  const res = await api.post("/api/v1/auth/deactivate-account");
+  const res = await api.post("/auth/deactivate-account");
   return res.data;
 };
 
@@ -80,7 +132,7 @@ export const deactivateAccountApi = async (): Promise<AccountActionResponse> => 
 export const deleteAccountApi = async (
   reason?: string,
 ): Promise<AccountActionResponse> => {
-  const res = await api.delete("/api/v1/auth/delete-account", {
+  const res = await api.delete("/auth/delete-account", {
     data: reason ? { reason } : undefined,
   });
   return res.data;

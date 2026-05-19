@@ -1,8 +1,9 @@
+import { Suspense } from "react";
 import { Outlet } from "react-router-dom";
-// import ScrollToTop from "../scoll/ScrollToTop";
 import Footer from "./footer/Footer";
 import Header from "./header/Header";
 import ScrollToTop from "../components/ScrollToTop";
+import BuildInLoader from "../loader/BuildInLoader";
 
 export default function MainLayout() {
   return (
@@ -11,9 +12,13 @@ export default function MainLayout() {
       <Header />
 
       <main className="flex-1">
-        <Outlet />
+        <Suspense fallback={<BuildInLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
+
       <Footer />
     </div>
   );
 }
+

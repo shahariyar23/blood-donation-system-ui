@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Icons } from "../../../shared/icons/Icons";
 import MainContainer from "../../../shared/main-container/MainContainer";
 import Button from "../../../shared/button/CustomButton";
+import { useSelector } from "react-redux";
+import type { RootState } from "../../../redux/store";
 
 interface BloodSearchProps {
   isFloating?: boolean;
@@ -10,9 +13,33 @@ interface BloodSearchProps {
 const bloodGroups = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 
 const BloodSearch = ({ isFloating = false }: BloodSearchProps) => {
+  const navigate = useNavigate();
+  const { user } = useSelector((s: RootState) => s.user);
   const [bloodGroup, setBloodGroup] = useState("A+");
-  const [location, setLocation] = useState("");
   const [radius, setRadius] = useState(10);
+  const locationLabel = useMemo(() => {
+    const locationRaw = user?.location as any;
+    const road = locationRaw?.road ? String(locationRaw.road).trim() : "";
+    const quarter = locationRaw?.quarter ? String(locationRaw.quarter).trim() : "";
+    const city = locationRaw?.city ? String(locationRaw.city).trim() : "";
+
+    if (road) {
+      const second = quarter || city;
+      return second ? `${road} · ${second}` : road;
+    }
+
+    return quarter || city || "";
+  }, [user?.location]);
+
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+
+    if (bloodGroup) params.set("bloodType", bloodGroup);
+    if (locationLabel) params.set("location", locationLabel);
+    if (radius) params.set("distance", String(radius));
+
+    navigate(`/find-donor?${params.toString()}`);
+  };
 
   // ── Mobile layout (< sm) ──────────────────────────────────────────────
   const mobileContent = (
@@ -68,8 +95,8 @@ const BloodSearch = ({ isFloating = false }: BloodSearchProps) => {
             <input
               type="text"
               placeholder="Enter city or area"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              value={locationLabel}
+              readOnly
               className="outline-none bg-transparent text-sm text-gray-700 w-full"
             />
           </div>
@@ -82,6 +109,7 @@ const BloodSearch = ({ isFloating = false }: BloodSearchProps) => {
         size="md"
         fullWidth
         leftIcon={<Icons.Search />}
+        onClick={handleSearch}
         className="w-full rounded-none rounded-b-2xl text-sm py-3"
       >
         Find Donor
@@ -124,8 +152,8 @@ const BloodSearch = ({ isFloating = false }: BloodSearchProps) => {
           <input
             type="text"
             placeholder="Enter your area"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            value={locationLabel}
+            readOnly
             className="outline-none bg-transparent text-sm text-gray-700 w-full"
           />
         </div>
@@ -158,6 +186,7 @@ const BloodSearch = ({ isFloating = false }: BloodSearchProps) => {
         size="sm"
         radius="none"
         rightIcon={<Icons.Search />}
+        onClick={handleSearch}
         className="
           shrink-0
           rounded-tl-none rounded-tr-full rounded-bl-none rounded-br-full

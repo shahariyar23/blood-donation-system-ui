@@ -1,55 +1,54 @@
 import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import {
+  getSettingsApi,
   getSessionsApi,
   logoutSessionApi,
   logoutOtherSessionsApi,
   deactivateAccountApi,
   deleteAccountApi,
+  type NotificationSettings,
+  type PrivacySettings,
   type Session,
 } from "../service/settingService";
 
-interface SettingToggleProps {
-  label: string;
-  sub: string;
-  value: boolean;
-  onChange: (v: boolean) => void;
-}
 
-function SettingToggle({ label, sub, value, onChange }: SettingToggleProps) {
-  const trackClass = value ? "bg-[#1D9E75]" : "bg-[#D5D0CA]";
-  const knobClass = value ? "translate-x-6" : "translate-x-0";
 
-  return (
-    <div className="flex items-center justify-between py-3.5">
-      <div>
-        <div className="text-sm font-medium text-[#1A1A1A]">{label}</div>
-        <div className="mt-0.5 text-xs text-[#999]">{sub}</div>
-      </div>
-      <button
-        type="button"
-        onClick={() => onChange(!value)}
-        aria-pressed={value}
-        className={`relative h-6 w-12 rounded-full transition-colors ${trackClass}`}
-      >
-        <span
-          className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${knobClass}`}
-        />
-      </button>
-    </div>
-  );
-}
+// function SettingToggle({ label, sub, value, onChange, disabled = false }: SettingToggleProps) {
+//   const trackClass = value ? "bg-[#1D9E75]" : "bg-[#D5D0CA]";
+//   const knobClass = value ? "translate-x-6" : "translate-x-0";
 
-function SettingSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="mb-5 rounded-2xl border border-[#E8E2DA] bg-white px-5 py-6 sm:px-7">
-      <p className="mb-2 text-[11px] font-medium uppercase tracking-[1px] text-[#C0392B]">
-        {title}
-      </p>
-      <div className="divide-y divide-[#F0EDE8]">{children}</div>
-    </div>
-  );
-}
+//   return (
+//     <div className="flex items-center justify-between py-3.5">
+//       <div>
+//         <div className="text-sm font-medium text-[#1A1A1A]">{label}</div>
+//         <div className="mt-0.5 text-xs text-[#999]">{sub}</div>
+//       </div>
+//       <button
+//         type="button"
+//         onClick={() => onChange(!value)}
+//         aria-pressed={value}
+//         disabled={disabled}
+//         className={`relative h-6 w-12 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${trackClass}`}
+//       >
+//         <span
+//           className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${knobClass}`}
+//         />
+//       </button>
+//     </div>
+//   );
+// }
+
+// function SettingSection({ title, children }: { title: string; children: React.ReactNode }) {
+//   return (
+//     <div className="mb-5 rounded-2xl border border-[#E8E2DA] bg-white px-5 py-6 sm:px-7">
+//       <p className="mb-2 text-[11px] font-medium uppercase tracking-[1px] text-[#C0392B]">
+//         {title}
+//       </p>
+//       <div className="divide-y divide-[#F0EDE8]">{children}</div>
+//     </div>
+//   );
+// }
 
 function deviceIcon(session: Session): string {
   const type = session.deviceDetails?.type ?? "";
@@ -59,7 +58,7 @@ function deviceIcon(session: Session): string {
 }
 
 export default function SettingsPage() {
-  const [notif, setNotif] = useState({
+  const [_notif, setNotif] = useState<NotificationSettings>({
     bloodRequests: true,
     donorResponses: true,
     requestFulfilled: true,
@@ -68,7 +67,7 @@ export default function SettingsPage() {
     smsAlerts: false,
   });
 
-  const [privacy, setPrivacy] = useState({
+  const [_privacy, setPrivacy] = useState<PrivacySettings>({
     showPhone: false,
     showEmail: false,
     showLocation: true,
@@ -77,11 +76,25 @@ export default function SettingsPage() {
   });
 
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [_settingsLoading, setSettingsLoading] = useState(true);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [accountActionLoading, setAccountActionLoading] = useState<
     "deactivate" | "delete" | null
   >(null);
+
+  const fetchSettings = useCallback(async () => {
+    try {
+      setSettingsLoading(true);
+      const data = await getSettingsApi();
+      setNotif(data.notifications);
+      setPrivacy(data.privacy);
+    } catch {
+      toast.error("Failed to load settings");
+    } finally {
+      setSettingsLoading(false);
+    }
+  }, []);
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -96,8 +109,9 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
+    fetchSettings();
     fetchSessions();
-  }, [fetchSessions]);
+  }, [fetchSettings, fetchSessions]);
 
   const handleLogoutSession = async (sessionId: string) => {
     try {
@@ -128,10 +142,8 @@ export default function SettingsPage() {
     }
   };
 
-  const toggleNotif = (key: keyof typeof notif) => (v: boolean) =>
-    setNotif((p) => ({ ...p, [key]: v }));
-  const togglePrivacy = (key: keyof typeof privacy) => (v: boolean) =>
-    setPrivacy((p) => ({ ...p, [key]: v }));
+  
+
 
   const confirmAction = (options: {
     title: string;
@@ -230,43 +242,49 @@ export default function SettingsPage() {
             Manage your notifications, privacy and security
           </p>
         </div>
-
+{/* 
         <SettingSection title="Notifications">
           <SettingToggle
             label="Blood requests nearby"
             sub="Get notified when someone requests your blood type"
             value={notif.bloodRequests}
             onChange={toggleNotif("bloodRequests")}
+            disabled={settingsLoading || settingActionLoading === "notif-bloodRequests"}
           />
           <SettingToggle
             label="Donor responses"
             sub="When a donor responds to your blood request"
             value={notif.donorResponses}
             onChange={toggleNotif("donorResponses")}
+            disabled={settingsLoading || settingActionLoading === "notif-donorResponses"}
           />
           <SettingToggle
             label="Request fulfilled"
             sub="When your blood request is marked as fulfilled"
             value={notif.requestFulfilled}
             onChange={toggleNotif("requestFulfilled")}
+            disabled={settingsLoading || settingActionLoading === "notif-requestFulfilled"}
           />
           <SettingToggle
             label="System updates"
             sub="News and feature updates from BloodConnect"
             value={notif.systemUpdates}
             onChange={toggleNotif("systemUpdates")}
+            disabled={settingsLoading || settingActionLoading === "notif-systemUpdates"}
           />
           <SettingToggle
             label="Email digest"
             sub="Weekly summary of activity in your area"
             value={notif.emailDigest}
             onChange={toggleNotif("emailDigest")}
+            disabled={settingsLoading || settingActionLoading === "notif-emailDigest"}
           />
           <SettingToggle
             label="SMS alerts"
             sub="Urgent blood requests via SMS (charges may apply)"
             value={notif.smsAlerts}
             onChange={toggleNotif("smsAlerts")}
+            disabled={settingsLoading || settingActionLoading === "notif-smsAlerts"}
           />
         </SettingSection>
 
@@ -276,32 +294,37 @@ export default function SettingsPage() {
             sub="Visible to donors and requesters on your profile"
             value={privacy.showPhone}
             onChange={togglePrivacy("showPhone")}
+            disabled={settingsLoading || settingActionLoading === "privacy-showPhone"}
           />
           <SettingToggle
             label="Show email address"
             sub="Visible on your public donor profile"
             value={privacy.showEmail}
             onChange={togglePrivacy("showEmail")}
+            disabled={settingsLoading || settingActionLoading === "privacy-showEmail"}
           />
           <SettingToggle
             label="Show location"
             sub="Show your city/district to help donors find you"
             value={privacy.showLocation}
             onChange={togglePrivacy("showLocation")}
+            disabled={settingsLoading || settingActionLoading === "privacy-showLocation"}
           />
           <SettingToggle
             label="Show donation count"
             sub="Display total donations on your public profile"
             value={privacy.showDonations}
             onChange={togglePrivacy("showDonations")}
+            disabled={settingsLoading || settingActionLoading === "privacy-showDonations"}
           />
           <SettingToggle
             label="Show social links"
             sub="Facebook, Instagram and Twitter on your profile"
             value={privacy.showSocials}
             onChange={togglePrivacy("showSocials")}
+            disabled={settingsLoading || settingActionLoading === "privacy-showSocials"}
           />
-        </SettingSection>
+        </SettingSection> */}
 
         <div className={cardClass}>
           <div className="mb-4 flex items-center justify-between">

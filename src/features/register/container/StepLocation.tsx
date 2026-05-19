@@ -50,7 +50,7 @@ export function StepLocation({
       )}
 
       <div style={styles.grid2}>
-        <Field label="City / Town" error={errors.city}>
+        <Field label="City / Town" error={errors.city} isRequired>
           <input
             ref={setFieldRef("city")}
             name="city"
@@ -94,7 +94,7 @@ export function StepLocation({
             placeholder="County"
           />
         </Field>
-        <Field label="Country" error={errors.country}>
+        <Field label="Country" error={errors.country} isRequired>
           <input
             ref={setFieldRef("country")}
             name="country"

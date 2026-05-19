@@ -12,6 +12,7 @@ interface BloodBankFilterSidebarProps {
   filters:        BankFilterState;
   isOpen:         boolean;
   resultCount:    number;
+  bloodGroups?:   string[];
   onToggle:       () => void;
   onChange:       (updated: Partial<BankFilterState>) => void;
   onReset:        () => void;
@@ -21,6 +22,7 @@ const BloodBankFilterSidebar = ({
   filters,
   isOpen,
   resultCount,
+  bloodGroups = BLOOD_GROUPS,
   onToggle,
   onChange,
   onReset,
@@ -122,7 +124,7 @@ const BloodBankFilterSidebar = ({
               Blood Group
             </label>
             <div className="grid grid-cols-4 gap-1.5">
-              {BLOOD_GROUPS.map((g) => (
+              {bloodGroups.map((g) => (
                 <button
                   key={g}
                   onClick={() => onChange({ bloodType: g })}

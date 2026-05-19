@@ -12,9 +12,9 @@ import toast from "react-hot-toast";
 const navLinks = [
   { label: "Home", href: "/" },
   { label: "Find Donor", href: "/find-donor" },
-  { label: "Donate Blood", href: "/donate" },
   { label: "Request Blood", href: "/request" },
   { label: "Blood Banks", href: "/blood-banks" },
+  { label: "All Blood Request", href: "/view-all-request" },
   { label: "About", href: "/about" },
 ];
 
@@ -40,15 +40,20 @@ const Navbar = ({ scrolled }: NavbarProps) => {
   const [visible, setVisible] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
   // ── Logout ──────────────────────────────────────────
   const handleLogout = async () => {
+    if (logoutLoading) return;
+
+    setLogoutLoading(true);
     try {
       await logoutApi();
     } finally {
       dispatch(clearUser());
       toast.success("Logout successfully!");
       navigate("/login");
+      setLogoutLoading(false);
     }
   };
   // console.log(user)
@@ -103,7 +108,21 @@ const Navbar = ({ scrolled }: NavbarProps) => {
   }, []);
 
   // ── User Avatar UI ───────────────────────────────────
-  const UserAvatar = () => (
+  const locationLabel = (() => {
+    const locationRaw = user?.location as any;
+    const road = locationRaw?.road ? String(locationRaw.road).trim() : "";
+    const quarter = locationRaw?.quarter ? String(locationRaw.quarter).trim() : "";
+    const city = locationRaw?.city ? String(locationRaw.city).trim() : "";
+
+    if (road) {
+      const second = quarter || city;
+      return second ? `${road} · ${second}` : road;
+    }
+
+    return quarter || city || "";
+  })();
+
+  const renderUserAvatar = () => (
     <div className="relative" ref={dropdownRef}>
       {/* Avatar button */}
       <button
@@ -119,11 +138,11 @@ const Navbar = ({ scrolled }: NavbarProps) => {
               group-hover:border-primary transition-colors"
           />
         ) : (
-          <div
+            <div
             className="w-9 h-9 rounded-full bg-primary/10 border-2 border-primary/30
             group-hover:border-primary transition-colors center-flex"
           >
-            <Icons.User className="!w-4 !h-4 text-primary" />
+            <Icons.User className="w-4! h-4! text-primary" />
           </div>
         )}
 
@@ -138,7 +157,7 @@ const Navbar = ({ scrolled }: NavbarProps) => {
         </div>
 
         <Icons.ArrowForward
-          className={`!w-3.5 !h-3.5 text-gray-400 transition-transform duration-200
+          className={`w-3.5! h-3.5! text-gray-400 transition-transform duration-200
             ${dropdownOpen ? "rotate-90" : "rotate-0"}`}
         />
       </button>
@@ -155,9 +174,9 @@ const Navbar = ({ scrolled }: NavbarProps) => {
               {user?.name}
             </p>
             <p className="text-xs text-gray-400 truncate">{user?.email}</p>
-            {user?.location?.city && (
-              <p className="text-xs text-primary mt-0.5">
-                📍 {user.location.city}
+            {locationLabel && (
+              <p className="text-xs text-primary mt-0.5 truncate">
+                📍 {locationLabel}
               </p>
             )}
           </div>
@@ -170,7 +189,7 @@ const Navbar = ({ scrolled }: NavbarProps) => {
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-dark
                 hover:bg-gray-50 hover:text-primary transition-colors"
             >
-              <Icons.User className="!w-4 !h-4" />
+              <Icons.User className="w-4! h-4!" />
               My Profile
             </NavLink>
 
@@ -181,7 +200,7 @@ const Navbar = ({ scrolled }: NavbarProps) => {
                 className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-dark
                   hover:bg-gray-50 hover:text-primary transition-colors"
               >
-                <Icons.Blood className="!w-4 !h-4" />
+                <Icons.Blood className="w-4! h-4!" />
                 My Donations
                 {(user?.totalDonations ?? 0) > 0 && (
                   <span
@@ -195,12 +214,22 @@ const Navbar = ({ scrolled }: NavbarProps) => {
             )}
 
             <NavLink
+              to="/my-blood-request"
+              onClick={() => setDropdownOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-dark
+                hover:bg-gray-50 hover:text-primary transition-colors"
+            >
+              <Icons.Blood className="w-4! h-4!" />
+              My Blood Request
+            </NavLink>
+
+            <NavLink
               to="/settings"
               onClick={() => setDropdownOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-dark
                 hover:bg-gray-50 hover:text-primary transition-colors"
             >
-              <Icons.Setting className="!w-4 !h-4" />
+              <Icons.Setting className="w-4! h-4!" />
               Settings
             </NavLink>
           </div>
@@ -208,12 +237,14 @@ const Navbar = ({ scrolled }: NavbarProps) => {
           {/* Logout */}
           <div className="border-t border-gray-100 py-1">
             <button
+              type="button"
               onClick={handleLogout}
+              disabled={logoutLoading}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm
-                text-red-500 hover:bg-red-50 transition-colors"
+                text-red-500 hover:bg-red-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Icons.Close className="!w-4 !h-4" />
-              Logout
+              <Icons.Close className="w-4! h-4!" />
+              {logoutLoading ? "Logging out..." : "Logout"}
             </button>
           </div>
         </div>
@@ -231,11 +262,11 @@ const Navbar = ({ scrolled }: NavbarProps) => {
         <MainContainer>
           <div className="flex items-center justify-between py-4">
             {/* Logo */}
-            <NavLink
-              to="/"
-              className="flex items-center gap-2 font-bold text-lg hover:scale-105 transition"
-            >
-              <Icons.Blood className="!w-5 !h-5 text-primary" />
+              <NavLink
+                to="/"
+                className="flex items-center gap-2 font-bold text-lg hover:scale-105 transition"
+              >
+                <Icons.Blood className="w-5! h-5! text-primary" />
               <span className="text-dark font-semibold font-serif">
                 Blood<span className="text-primary">Connect</span>
               </span>
@@ -260,7 +291,7 @@ const Navbar = ({ scrolled }: NavbarProps) => {
             {/* Desktop right side */}
             <div className="hidden lg:flex items-center gap-3">
               {isAuthenticated && user ? (
-                !isMobile && <UserAvatar />
+                !isMobile && renderUserAvatar()
               ) : (
                 <NavLink to="/login">
                   <Button variant="outline" size="sm" radius="xs">
@@ -278,7 +309,7 @@ const Navbar = ({ scrolled }: NavbarProps) => {
             {/* Mobile right side */}
             <div className="flex lg:hidden items-center gap-2">
               {isAuthenticated && user ? (
-                isMobile && <UserAvatar />
+                isMobile && renderUserAvatar()
               ) : (
                 <NavLink to="/login">
                   <Button variant="outline" size="xs" radius="xs">
@@ -298,13 +329,13 @@ const Navbar = ({ scrolled }: NavbarProps) => {
                     className={`absolute transition-all duration-300
                     ${menuOpen ? "opacity-100 rotate-0" : "opacity-0 rotate-90"}`}
                   >
-                    <Icons.Close className="!w-5 !h-5" />
+                    <Icons.Close className="w-5! h-5!" />
                   </span>
                   <span
                     className={`absolute transition-all duration-300
                     ${menuOpen ? "opacity-0 -rotate-90" : "opacity-100 rotate-0"}`}
                   >
-                    <Icons.Menu className="!w-5 !h-5" />
+                    <Icons.Menu className="w-5! h-5!" />
                   </span>
                 </div>
               </button>
@@ -335,7 +366,7 @@ const Navbar = ({ scrolled }: NavbarProps) => {
                 onClick={closeMenu}
                 className="flex items-center gap-2"
               >
-                <Icons.Blood className="!w-4 !h-4 text-primary" />
+                <Icons.Blood className="w-4! h-4! text-primary" />
                 <span className="font-serif font-bold text-dark text-base">
                   Blood<span className="text-primary">Connect</span>
                 </span>
@@ -345,7 +376,7 @@ const Navbar = ({ scrolled }: NavbarProps) => {
                 className="w-8 h-8 rounded-xs bg-gray-100 center-flex
                   hover:bg-red-50 hover:text-primary transition-colors"
               >
-                <Icons.Close className="!w-4 !h-4" />
+                <Icons.Close className="w-4! h-4!" />
               </button>
             </div>
 
@@ -366,7 +397,7 @@ const Navbar = ({ scrolled }: NavbarProps) => {
                       className="w-full h-full rounded-full object-cover"
                     />
                   ) : (
-                    <Icons.User className="!w-4 !h-4 text-primary" />
+                    <Icons.User className="w-4! h-4! text-primary" />
                   )}
                 </div>
                 <div className="min-w-0">
@@ -408,7 +439,7 @@ const Navbar = ({ scrolled }: NavbarProps) => {
                   }
                 >
                   <span>{link.label}</span>
-                  <Icons.ArrowForward className="!w-3.5 !h-3.5 text-primary/60" />
+                  <Icons.ArrowForward className="w-3.5! h-3.5! text-primary/60" />
                 </NavLink>
               ))}
             </nav>
@@ -417,14 +448,16 @@ const Navbar = ({ scrolled }: NavbarProps) => {
             <div className="px-4 pb-6 pt-3 border-t border-gray-100 flex flex-col gap-2.5">
               {isAuthenticated && user ? (
                 <button
+                  type="button"
+                  disabled={logoutLoading}
                   onClick={() => {
                     handleLogout();
                     closeMenu();
                   }}
                   className="w-full py-2.5 rounded-xs border border-red-200
-                    text-red-500 text-sm font-medium hover:bg-red-50 transition-colors"
+                    text-red-500 text-sm font-medium hover:bg-red-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Logout
+                  {logoutLoading ? "Logging out..." : "Logout"}
                 </button>
               ) : (
                 <NavLink to="/login" onClick={closeMenu}>

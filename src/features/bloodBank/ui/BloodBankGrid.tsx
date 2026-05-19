@@ -10,6 +10,7 @@ interface BloodBankGridProps {
   totalFiltered:  number;
   filters:        BankFilterState;
   loading:        boolean;
+  hasMore?:       boolean;
   onLoadMore:     () => void;
   onReset:        () => void;
 }
@@ -20,9 +21,11 @@ const BloodBankGrid = ({
   totalFiltered,
   filters,
   loading,
+  hasMore,
   onLoadMore,
   onReset,
 }: BloodBankGridProps) => {
+  const canLoadMore = hasMore ?? visibleCount < totalFiltered;
 
   // ── Empty state ────────────────────────────────────
   if (totalFiltered === 0) {
@@ -73,7 +76,7 @@ const BloodBankGrid = ({
       </div>
 
       {/* Load more */}
-      {visibleCount < totalFiltered && (
+      {canLoadMore && (
         <div className="mt-8 center-flex flex-col gap-4">
           {loading ? (
             <BuildInLoader />
@@ -91,7 +94,7 @@ const BloodBankGrid = ({
       )}
 
       {/* All loaded */}
-      {visibleCount >= totalFiltered && totalFiltered > 6 && (
+      {!canLoadMore && totalFiltered > 6 && (
         <p className="mt-8 text-center text-xs text-gray-400">
           All {totalFiltered} blood banks loaded
         </p>

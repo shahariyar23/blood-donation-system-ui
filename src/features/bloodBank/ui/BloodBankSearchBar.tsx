@@ -6,9 +6,10 @@ import { BLOOD_GROUPS, DISTRICTS, type BankFilterState } from "../service/bloodB
 interface BloodBankSearchBarProps {
   filters:          BankFilterState;
   onFilterChange:   (updated: Partial<BankFilterState>) => void;
+  bloodGroups?: string[];
 }
 
-const BloodBankSearchBar = ({ filters, onFilterChange }: BloodBankSearchBarProps) => {
+const BloodBankSearchBar = ({ filters, onFilterChange, bloodGroups = BLOOD_GROUPS }: BloodBankSearchBarProps) => {
   return (
     <div className="-mt-8 relative z-10 mb-6">
       <MainContainer>
@@ -66,7 +67,7 @@ const BloodBankSearchBar = ({ filters, onFilterChange }: BloodBankSearchBarProps
                   onChange={(e) => onFilterChange({ bloodType: e.target.value })}
                   className="outline-none bg-transparent text-sm text-dark w-full"
                 >
-                  {BLOOD_GROUPS.map(g => <option key={g}>{g}</option>)}
+                  {bloodGroups.map(g => <option key={g}>{g}</option>)}
                 </select>
               </div>
             </div>

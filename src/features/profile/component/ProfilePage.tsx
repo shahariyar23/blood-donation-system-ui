@@ -8,7 +8,6 @@ import ProfileCard from "../ui/ProfileCard";
 import ProfileField from "../ui/ProfileField";
 import ProfileAvatar from "../ui/ProfileAvatar";
 import BloodTypeSelector from "../ui/BloodTypeSelector";
-import AvailabilityToggle from "../ui/AvailabilityToggle";
 import SocialField from "../ui/SocialField";
 import toast from "react-hot-toast";
 import {
@@ -356,13 +355,29 @@ export default function ProfilePage() {
       syncProfile(updatedProfile);
     });
 
-  const toggleAvailability = () =>
-    save("availability", async () => {
-      const updatedProfile = await updateProfileApi({
-        isAvailable: !form.isAvailable,
-      });
-      syncProfile(updatedProfile);
-    });
+  // const toggleAvailability = async (val: boolean) => {
+  //   const prev = form.isAvailable;
+  //   // optimistic update
+  //   set("isAvailable", val);
+  //   setSaving("availability");
+  //   try {
+  //     const updatedProfile = await updateProfileApi({ isAvailable: val });
+  //     syncProfile(updatedProfile);
+  //   } catch (err: unknown) {
+  //     // revert on error
+  //     set("isAvailable", prev);
+  //     const error = err as ApiError;
+  //     if (error.response?.data?.message) {
+  //       toast.error(error.response.data.message);
+  //     } else if (err instanceof Error) {
+  //       toast.error(err.message);
+  //     } else {
+  //       toast.error("Failed to update availability");
+  //     }
+  //   } finally {
+  //     setSaving(null);
+  //   }
+  // };
 
   const savePassword = () =>
     save(
@@ -405,15 +420,6 @@ export default function ProfilePage() {
   return (
     <div style={s.page}>
       <div style={s.container}>
-        {/* ── page header ── */}
-        <div style={s.pageHeader}>
-          <h1 style={s.pageTitle}>My profile</h1>
-          <p style={s.pageSubtitle}>
-            {isDonor
-              ? "Manage your donor profile and account settings"
-              : "Manage your profile and account settings"}
-          </p>
-        </div>
 
         {/* ── 1. avatar + overview ── */}
         <ProfileCard title={isDonor ? "Donor overview" : "Profile overview"}>
@@ -429,13 +435,13 @@ export default function ProfilePage() {
             onUpload={() => toast("Avatar upload coming soon")}
           />
 
-          {isDonor && (
+          {/* {isDonor && (
             <AvailabilityToggle
               isAvailable={form.isAvailable}
               onChange={toggleAvailability}
               loading={isSaving("availability")}
             />
-          )}
+          )} */}
 
           {/* stats row */}
           <div
