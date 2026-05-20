@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
+import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   getSettingsApi,
@@ -11,44 +13,7 @@ import {
   type PrivacySettings,
   type Session,
 } from "../service/settingService";
-
-
-
-// function SettingToggle({ label, sub, value, onChange, disabled = false }: SettingToggleProps) {
-//   const trackClass = value ? "bg-[#1D9E75]" : "bg-[#D5D0CA]";
-//   const knobClass = value ? "translate-x-6" : "translate-x-0";
-
-//   return (
-//     <div className="flex items-center justify-between py-3.5">
-//       <div>
-//         <div className="text-sm font-medium text-[#1A1A1A]">{label}</div>
-//         <div className="mt-0.5 text-xs text-[#999]">{sub}</div>
-//       </div>
-//       <button
-//         type="button"
-//         onClick={() => onChange(!value)}
-//         aria-pressed={value}
-//         disabled={disabled}
-//         className={`relative h-6 w-12 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${trackClass}`}
-//       >
-//         <span
-//           className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${knobClass}`}
-//         />
-//       </button>
-//     </div>
-//   );
-// }
-
-// function SettingSection({ title, children }: { title: string; children: React.ReactNode }) {
-//   return (
-//     <div className="mb-5 rounded-2xl border border-[#E8E2DA] bg-white px-5 py-6 sm:px-7">
-//       <p className="mb-2 text-[11px] font-medium uppercase tracking-[1px] text-[#C0392B]">
-//         {title}
-//       </p>
-//       <div className="divide-y divide-[#F0EDE8]">{children}</div>
-//     </div>
-//   );
-// }
+import { clearUser } from "../../../redux/slices/userSlice";
 
 function deviceIcon(session: Session): string {
   const type = session.deviceDetails?.type ?? "";
@@ -82,6 +47,12 @@ export default function SettingsPage() {
   const [accountActionLoading, setAccountActionLoading] = useState<
     "deactivate" | "delete" | null
   >(null);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteFormError, setDeleteFormError] = useState<string | null>(null);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -208,25 +179,43 @@ export default function SettingsPage() {
 
   const handleDelete = () => {
     if (accountActionLoading) return;
-    confirmAction({
-      title: "Delete account permanently?",
-      message: "All your data will be erased. This cannot be undone.",
-      confirmLabel: "Delete",
-      onConfirm: async () => {
-        try {
-          setAccountActionLoading("delete");
-          await deleteAccountApi("user_requested");
-          toast.success("Account deleted");
-        } catch (err: unknown) {
-          const msg =
-            (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-            "Failed to delete account";
-          toast.error(msg);
-        } finally {
-          setAccountActionLoading(null);
-        }
-      },
-    });
+    setDeletePassword("");
+    setDeleteReason("");
+    setDeleteFormError(null);
+    setShowDeleteConfirmation(true);
+  };
+
+  const handleCancelDelete = () => {
+    if (accountActionLoading === "delete") return;
+    setShowDeleteConfirmation(false);
+    setDeleteFormError(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (accountActionLoading) return;
+    if (!deletePassword.trim()) {
+      setDeleteFormError("Password is required");
+      return;
+    }
+
+    try {
+      setAccountActionLoading("delete");
+      const response = await deleteAccountApi({
+        currentPassword: deletePassword,
+        reason: deleteReason.trim() || "No longer need the account",
+      });
+      toast.success(response.message || "Account deleted successfully");
+      dispatch(clearUser());
+      navigate("/login");
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Failed to delete account";
+      toast.error(msg);
+    } finally {
+      setAccountActionLoading(null);
+      setShowDeleteConfirmation(false);
+    }
   };
 
   const cardClass = "mb-5 rounded-2xl border border-[#E8E2DA] bg-white px-5 py-6 sm:px-7";
@@ -447,6 +436,60 @@ export default function SettingsPage() {
                 {accountActionLoading === "delete" ? "Working…" : "Delete"}
               </button>
             </div>
+            {showDeleteConfirmation && (
+              <div className="rounded-xl border border-[#E8E2DA] bg-[#FFF5F5] px-4 py-4">
+                <div className="mb-3 text-sm font-medium text-[#1A1A1A]">
+                  Confirm account deletion
+                </div>
+                <div className="mb-3">
+                  <label className="mb-1 block text-xs font-medium text-[#666]">
+                    Current password
+                  </label>
+                  <input
+                    type="password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    placeholder="Enter your current password"
+                    className="w-full rounded-xl border border-[#E8E2DA] bg-white px-3 py-2 text-sm text-[#1A1A1A] outline-none transition focus:border-[#1D9E75]"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="mb-1 block text-xs font-medium text-[#666]">
+                    Reason
+                  </label>
+                  <input
+                    type="text"
+                    value={deleteReason}
+                    onChange={(e) => setDeleteReason(e.target.value)}
+                    placeholder="No longer need the account"
+                    className="w-full rounded-xl border border-[#E8E2DA] bg-white px-3 py-2 text-sm text-[#1A1A1A] outline-none transition focus:border-[#1D9E75]"
+                  />
+                </div>
+                {deleteFormError && (
+                  <p className="mb-3 text-xs text-[#E74C3C]">
+                    {deleteFormError}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={handleConfirmDelete}
+                    disabled={accountActionLoading === "delete"}
+                    className="rounded-xs border border-[#FADBD8] bg-[#E74C3C] px-4 py-1.5 text-xs font-medium text-white hover:bg-[#C0392B] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {accountActionLoading === "delete" ? "Deleting…" : "Confirm Delete"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelDelete}
+                    disabled={accountActionLoading === "delete"}
+                    className="rounded-md border border-[#E8E2DA] px-4 py-1.5 text-xs font-medium text-[#666] hover:bg-[#F7F5F2] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -15,6 +15,7 @@ import AdminUsersPage from "../../../features/admin/ui/AdminUsersPage";
 import AdminReportsPage from "../../../features/admin/ui/AdminReportsPage";
 import AdminBloodRequestsPage from "../../../features/admin/ui/AdminBloodRequestsPage";
 import AdminDonationsPage from "../../../features/admin/ui/AdminDonationsPage";
+import AdminDeletedUsersPage from "../../../features/admin/ui/AdminDeletedUsersPage";
 import AdminVerificationsPage from "../../../features/admin/ui/AdminVerificationsPage";
 import AdminSettingsPage from "../../../features/admin/ui/AdminSettingsPage";
 import AdminHospitalsPage from "../../../features/admin/ui/AdminHospitalsPage";
@@ -157,6 +158,14 @@ export const router = createBrowserRouter([
         element: (
           <AdminRoute>
             <AdminBloodBanksPage />
+          </AdminRoute>
+        ),
+      },
+      {
+        path: "deleted-users",
+        element: (
+          <AdminRoute>
+            <AdminDeletedUsersPage />
           </AdminRoute>
         ),
       },

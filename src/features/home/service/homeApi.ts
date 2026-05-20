@@ -107,7 +107,7 @@ export interface HomeDonorsResponse {
 }
 
 export const fetchHomeDonors = async () => {
-  const res = await Api.get<ApiEnvelope<HomeDonor[]>>("home/donors");
+  const res = await Api.get<ApiEnvelope<HomeDonor[]>>("/home/donors");
   return res.data.data;
 };
 

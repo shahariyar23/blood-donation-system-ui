@@ -127,6 +127,36 @@ export interface AdminUsersResponse {
   pagination: AdminPagination;
 }
 
+export interface AdminDeletedUserMeta {
+  ip?: string;
+  userAgent?: string;
+}
+
+export interface AdminDeletedUser {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  role: "admin" | "donor" | "user" | "hospital";
+  reason: string;
+  deletedAt: string;
+  meta?: AdminDeletedUserMeta;
+}
+
+export interface AdminDeletedUserDetails extends AdminDeletedUser {
+  _id: string;
+  deletedBy?: string;
+  userSnapshot?: Record<string, unknown>;
+  donorSnapshot?: Record<string, unknown>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AdminDeletedUsersResponse {
+  deletedUsers: AdminDeletedUser[];
+  pagination: AdminPagination;
+}
+
 export interface AdminHospitalAuditLog {
   action: string;
   performedBy?: string;

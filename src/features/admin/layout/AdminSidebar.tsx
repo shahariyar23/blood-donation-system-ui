@@ -7,6 +7,7 @@ import {
   Shield,
   Users2,
   Warehouse,
+  X,
 } from "lucide-react";
 
 type SidebarItem = {
@@ -41,6 +42,7 @@ const buildSidebarSections = (usersCount?: number | null, donationsCount?: numbe
     items: [
       { label: "Hospital", to: "/admin/hospitals", icon: Building2, badge: null },
       { label: "Blood Bank", to: "/admin/blood-bank", icon: Warehouse, badge: null },
+      { label: "Deleted Users", to: "/admin/deleted-users", icon: Users2, badge: null },
     ],
   },
 ];
@@ -51,6 +53,8 @@ interface AdminSidebarProps {
   usersCount?: number | null;
   donationsCount?: number | null;
   bloodRequestsCount?: number | null;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 export default function AdminSidebar({
@@ -59,22 +63,47 @@ export default function AdminSidebar({
   usersCount = null,
   donationsCount = null,
   bloodRequestsCount = null,
+  mobileOpen = false,
+  onMobileClose,
 }: AdminSidebarProps) {
   const sidebarSections = buildSidebarSections(usersCount, donationsCount, bloodRequestsCount);
 
   return (
-    <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-65 flex-col border-r border-white/10 bg-[#8b1114] text-white overflow-y-auto z-50">
+    <>
+    <button
+      type="button"
+      aria-label="Close admin navigation"
+      onClick={onMobileClose}
+      className={`fixed inset-0 z-40 bg-black/55 transition-opacity lg:hidden ${
+        mobileOpen ? "opacity-100" : "pointer-events-none opacity-0"
+      }`}
+    />
+    <aside
+      className={`fixed left-0 top-0 z-50 flex h-screen w-[18rem] flex-col overflow-y-auto border-r border-white/10 bg-[#8b1114] text-white shadow-2xl shadow-black/40 transition-transform duration-300 lg:w-65 lg:translate-x-0 ${
+        mobileOpen ? "translate-x-0" : "-translate-x-full"
+      }`}
+    >
       <div className="border-b border-white/10 p-5">
-        <div className="flex items-center gap-3 rounded-2xl bg-black/10 px-3 py-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15 text-white shadow-lg shadow-black/10">
-            <Shield className="h-5 w-5" />
+        <div className="flex items-center justify-between gap-3 rounded-2xl bg-black/10 px-3 py-2.5">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-white shadow-lg shadow-black/10">
+              <Shield className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-[17px] font-semibold leading-none">BloodConnect</p>
+              <p className="mt-1 text-[11px] uppercase tracking-[2.5px] text-white/65">
+                Admin portal
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-[17px] font-semibold leading-none">BloodConnect</p>
-            <p className="mt-1 text-[11px] uppercase tracking-[2.5px] text-white/65">
-              Admin portal
-            </p>
-          </div>
+          <button
+            type="button"
+            aria-label="Close admin navigation"
+            onClick={onMobileClose}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/15 lg:hidden"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -94,6 +123,7 @@ export default function AdminSidebar({
                       key={item.label}
                       to={item.to}
                       end={item.to === "/admin"}
+                      onClick={onMobileClose}
                       className={({ isActive }) =>
                         [
                           "flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition",
@@ -147,5 +177,6 @@ export default function AdminSidebar({
         </div>
       </div>
     </aside>
+    </>
   );
 }

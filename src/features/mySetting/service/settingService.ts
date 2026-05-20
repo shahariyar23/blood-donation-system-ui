@@ -47,7 +47,14 @@ interface LogoutOthersResponse {
 }
 
 interface AccountActionResponse {
-  message?: string;
+  success: boolean;
+  message: string;
+  statusCode: number;
+}
+
+interface DeleteAccountPayload {
+  currentPassword: string;
+  reason?: string;
 }
 
 export interface NotificationSettings {
@@ -128,12 +135,12 @@ export const deactivateAccountApi = async (): Promise<AccountActionResponse> => 
   return res.data;
 };
 
-// DELETE /api/v1/auth/delete-account
+// DELETE /api/auth/delete-account
 export const deleteAccountApi = async (
-  reason?: string,
+  payload: DeleteAccountPayload,
 ): Promise<AccountActionResponse> => {
   const res = await api.delete("/auth/delete-account", {
-    data: reason ? { reason } : undefined,
+    data: payload,
   });
   return res.data;
 };

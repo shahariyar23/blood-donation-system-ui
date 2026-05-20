@@ -337,7 +337,7 @@ function StatCard({
   accent,
 }: {
   label: string;
-  value: number;
+  value: number | string;
   detail: string;
   chip: string;
   icon: typeof Droplets;
@@ -362,7 +362,9 @@ function StatCard({
           {chip}
         </span>
       </div>
-      <p className="mt-4 text-3xl font-semibold tracking-tight text-white">{value.toLocaleString()}</p>
+      <p className="mt-4 text-3xl font-semibold tracking-tight text-white">
+        {typeof value === "number" ? value.toLocaleString() : value}
+      </p>
       <p className="mt-1 text-sm font-medium text-zinc-300">{label}</p>
       <p className="mt-2 text-xs text-zinc-400">{detail}</p>
     </article>
@@ -648,9 +650,27 @@ export default function AdminDashboard() {
 
   const donorThisWeek = weeklySeries.reduce((sum, point) => sum + point.value, 0);
   const donorLastWeek = Math.max(0, donorThisWeek - Math.round(donorThisWeek * 0.18));
+  const weeklyGrowthPercent = donorLastWeek > 0 ? Math.round(((donorThisWeek - donorLastWeek) / donorLastWeek) * 100) : donorThisWeek > 0 ? 100 : 0;
+  const weeklyGrowthLabel = `${weeklyGrowthPercent >= 0 ? "+" : ""}${weeklyGrowthPercent}% vs last week`;
+  const topBloodGroup = [...bloodTypeDistribution].sort((a, b) => b.value - a.value)[0]?.label ?? "Unknown";
+  const emergencyRequests = stats.pendingReports ?? recentReports.filter((report) => report.status === "pending").length;
+  const activeUsersOnline = stats.activeUsers ?? 0;
   const pendingDonorUsers = recentUsers.filter(
     (user) => user.role === "donor" && !isDonorVerified(user)
   );
+
+  const heatmapData = [
+    { district: "Dhaka", value: 92 },
+    { district: "Chittagong", value: 78 },
+    { district: "Sylhet", value: 64 },
+    { district: "Khulna", value: 58 },
+    { district: "Rajshahi", value: 48 },
+    { district: "Barishal", value: 42 },
+    { district: "Rangpur", value: 36 },
+    { district: "Mymensingh", value: 30 },
+    { district: "Comilla", value: 22 },
+  ];
+  const maxHeatmapValue = Math.max(...heatmapData.map((item) => item.value), 1);
 
   const activityLog: ActivityLogEntry[] = [
     ...recentUsers.map((user) => ({
@@ -738,11 +758,18 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 xl:grid-cols-4">
         <StatCard label="Total donors" value={stats.totalDonors} detail="Registered donor accounts ready for matching." chip="Live" icon={Droplets} accent="donor" />
         <StatCard label="Hospitals" value={stats.totalHospitals} detail="Connected institutions in the network." chip="Verified" icon={Building2} accent="hospital" />
-        <StatCard label="Total Blood requests" value={stats.totalBloodRequests} detail="Blood requests currently tracked by the platform." chip="Queue" icon={FileText} accent="request" />
+        <StatCard label="Total blood requests" value={stats.totalBloodRequests} detail="Blood requests currently tracked by the platform." chip="Queue" icon={FileText} accent="request" />
         <StatCard label="Total donations" value={stats.totalDonations} detail="Completed donations logged in the system." chip="Tracked" icon={Activity} accent="donation" />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-4">
+        <StatCard label="Most requested blood group" value={topBloodGroup} detail="Highest local demand by blood type." chip="Demand" icon={Droplets} accent="donation" />
+        <StatCard label="Emergency requests" value={emergencyRequests} detail="Pending high-priority requests." chip="Urgent" icon={FileText} accent="request" />
+        <StatCard label="Pending verifications" value={pendingDonorUsers.length} detail="Donor accounts awaiting review." chip="Review" icon={ShieldCheck} accent="hospital" />
+        <StatCard label="Active users online" value={activeUsersOnline} detail="Users currently active in the system." chip="Live" icon={Users2} accent="donor" />
       </div>
 
       <article className="rounded-3xl border border-white/10 bg-[#2a2a2a] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.24)]">
@@ -819,12 +846,12 @@ export default function AdminDashboard() {
             <div className="rounded-2xl bg-[#333333] p-4">
               <p className="text-2xl font-semibold text-white">{donorThisWeek}</p>
               <p className="mt-1 text-sm text-zinc-400">This week</p>
-              <p className="mt-1 text-xs text-emerald-500">+18% vs last</p>
+              <p className="mt-1 text-xs text-emerald-400">{weeklyGrowthLabel}</p>
             </div>
             <div className="rounded-2xl bg-[#333333] p-4">
               <p className="text-2xl font-semibold text-white">{donorLastWeek}</p>
               <p className="mt-1 text-sm text-zinc-400">Last week</p>
-              <p className="mt-1 text-xs text-amber-500">-4% vs prior</p>
+              <p className="mt-1 text-xs text-zinc-400">Baseline trend</p>
             </div>
             <div className="rounded-2xl bg-[#333333] p-4">
               <p className="text-2xl font-semibold text-white">{stats.totalDonors}</p>
@@ -924,6 +951,34 @@ export default function AdminDashboard() {
           </div>
         </article>
       </div>
+
+      <article className="rounded-3xl border border-white/10 bg-[#2a2a2a] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.24)]">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[2px] text-zinc-400">District demand heatmap</p>
+            <h2 className="mt-1 text-lg font-semibold text-white">Regional blood demand</h2>
+            <p className="mt-1 text-sm text-zinc-400">Visualize demand intensity across major districts.</p>
+          </div>
+          <PieChart className="h-5 w-5 text-zinc-400" />
+        </div>
+
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          {heatmapData.map((item) => {
+            const intensity = 0.2 + (item.value / maxHeatmapValue) * 0.58;
+            return (
+              <div
+                key={item.district}
+                className="rounded-3xl p-4 text-white"
+                style={{ backgroundColor: `rgba(239, 68, 68, ${intensity})` }}
+              >
+                <p className="text-sm font-semibold">{item.district}</p>
+                <p className="mt-2 text-3xl font-semibold">{item.value}</p>
+                <p className="mt-1 text-xs text-white/80">Demand score</p>
+              </div>
+            );
+          })}
+        </div>
+      </article>
 
       <article className="rounded-3xl border border-white/10 bg-[#2a2a2a] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.24)]">
         <div className="flex items-center justify-between gap-4">

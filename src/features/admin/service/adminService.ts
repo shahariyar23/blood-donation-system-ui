@@ -2,6 +2,9 @@ import Api from "../../../utilities/api";
 import type { IReduxUser } from "../../../redux/slices/userSlice";
 import type {
   AdminDashboardData,
+  AdminDeletedUser,
+  AdminDeletedUserDetails,
+  AdminDeletedUsersResponse,
   AdminHospital,
   AdminHospitalsResponse,
   AdminMe,
@@ -95,6 +98,34 @@ export const getAdminUsersApi = async (query: AdminUsersQuery) => {
   return res.data.data;
 };
 
+export interface AdminDeletedUsersQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+export const getAdminDeletedUsersApi = async (query: AdminDeletedUsersQuery) => {
+  const res = await Api.get<ApiEnvelope<AdminDeletedUsersResponse>>("/admin/deleted-users", {
+    params: query,
+  });
+  return res.data.data;
+};
+
+export const getAdminDeletedUserDetailsApi = async (id: string) => {
+  const res = await Api.get<ApiEnvelope<AdminDeletedUserDetails>>(`/admin/deleted-users/${id}`);
+  return res.data.data;
+};
+
+export const restoreAdminDeletedUserApi = async (id: string) => {
+  const res = await Api.post<ApiEnvelope<AdminDeletedUser>>(`/admin/deleted-users/${id}/restore`);
+  return res.data.data;
+};
+
+export const deleteAdminDeletedUserApi = async (id: string) => {
+  const res = await Api.delete<ApiEnvelope<{ id: string; deleted: boolean }>>(`/admin/deleted-users/${id}`);
+  return res.data.data;
+};
+
 export const getAdminHospitalsApi = async (query: AdminHospitalsQuery) => {
   const res = await Api.get<ApiEnvelope<AdminHospitalsResponse>>("/admin/hospitals", {
     params: query,
@@ -132,7 +163,7 @@ export const unverifyAdminHospitalApi = async (id: string) => {
 };
 
 export const getAdminUserDetailsApi = async (id: string) => {
-  const res = await Api.get<ApiEnvelope<AdminUserDetails>>(`/users/${id}`);
+  const res = await Api.get<ApiEnvelope<AdminUserDetails>>(`/admin/users/${id}`);
   return res.data.data;
 };
 

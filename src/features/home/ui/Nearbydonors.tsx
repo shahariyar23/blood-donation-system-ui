@@ -121,7 +121,12 @@ const NearbyDonors = ({ donors = [], loading = false, error }: NearbyDonorsProps
     };
   }, []);
 
-  const displayDonors = apiDonors.length > 0 ? apiDonors : donors;
+  const displayDonors =
+    Array.isArray(apiDonors) && apiDonors.length > 0
+      ? apiDonors
+      : Array.isArray(donors)
+      ? donors
+      : [];
   const loadingState = loading || apiLoading;
   const errorState = error || apiError;
 

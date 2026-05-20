@@ -38,7 +38,7 @@ const BloodGroupAvailability = ({
       try {
         const result = await fetchHomeDonorGroups();
         if (!mounted) return;
-        setApiBloodGroups(result);
+        setApiBloodGroups(Array.isArray(result) ? result : []);
       } catch (err) {
         if (!mounted) return;
         setApiError(
@@ -61,7 +61,11 @@ const BloodGroupAvailability = ({
   }, []);
 
   const displayBloodGroups =
-    apiBloodGroups.length > 0 ? apiBloodGroups : (bloodGroups ?? []);
+    Array.isArray(apiBloodGroups) && apiBloodGroups.length > 0
+      ? apiBloodGroups
+      : Array.isArray(bloodGroups)
+      ? bloodGroups
+      : [];
   const loadingState = loading || apiLoading;
   const errorState = error || apiError;
 

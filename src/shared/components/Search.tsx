@@ -32,6 +32,8 @@ interface UniversalSearchProps {
   dropdownDisabled?: boolean;
   /** Extra className on the root wrapper */
   className?: string;
+  /** HTML id attribute for the input */
+  inputId?: string;
   /** Size variant */
   size?: "sm" | "md" | "lg";
 }
@@ -74,10 +76,11 @@ const Search = ({
   maxResults = 8,
   dropdownDisabled = false,
   className = "",
+  inputId,
   size = "md",
 }: UniversalSearchProps) => {
-  const [query,       setQuery]       = useState("");
-  const [open,        setOpen]        = useState(false);
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(-1);
   const inputRef  = useRef<HTMLInputElement>(null);
   const wrapRef   = useRef<HTMLDivElement>(null);
@@ -173,26 +176,24 @@ const Search = ({
     <div ref={wrapRef} className={`relative w-full ${className}`}>
 
       {/* Input row */}
-      <div className={`flex items-center bg-white rounded-xs shadow-md
-        ring-2 transition-all duration-200
-        ${open ? "ring-primary/40" : "ring-transparent"}`}>
+      <div className={`flex items-center gap-3 bg-slate-950/95 border border-white/10 rounded-full shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl px-4 py-0.5 transition-all duration-200
+        ${open ? "ring-2 ring-primary/40" : "ring-1 ring-transparent"}`}>
 
         {/* Search icon */}
-        <span className="pl-3 sm:pl-4 shrink-0 text-gray-400">
-          <Icons.Search className={sz.icon} />
+        <span className="text-slate-300">
+          <Icons.Search className="w-5 h-5" />
         </span>
 
         {/* Input */}
         <input
           ref={inputRef}
-          type="text"
-          value={query}
+          id={inputId}
           onChange={handleChange}
           onFocus={() => { if (!dropdownDisabled && query) setOpen(true); }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className={`flex-1 outline-none bg-transparent ${sz.input}
-            text-dark placeholder-gray-400 min-w-0`}
+          className={`flex-1 h-14 rounded-full outline-none bg-transparent ${sz.input}
+            text-white placeholder:text-slate-500 min-w-0`}
           autoComplete="off"
         />
 
@@ -200,9 +201,10 @@ const Search = ({
         {query && (
           <button
             onClick={handleClear}
-            className="shrink-0 px-2 text-gray-300 hover:text-gray-500 transition-colors"
+            className="shrink-0 flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label="Clear search"
           >
-            <Icons.Close className="w-3.5 h-3.5" />
+            <Icons.Close className="w-4 h-4" />
           </button>
         )}
 
@@ -210,9 +212,7 @@ const Search = ({
         {showButton && (
           <button
             onClick={handleSearch}
-            className={`shrink-0 bg-primary text-white font-semibold
-              rounded-r-xs hover:bg-red-700 active:scale-95
-              transition-all duration-200 ${sz.btn}`}
+            className={`shrink-0 rounded-2xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition-all duration-200 hover:bg-red-600 active:scale-95 ${sz.btn}`}
           >
             Search
           </button>
@@ -221,16 +221,14 @@ const Search = ({
 
       {/* ── Dropdown ── */}
       {open && !dropdownDisabled && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1.5
-          bg-white rounded-xs shadow-xl z-50 overflow-hidden
-          border border-gray-100 animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="absolute top-full left-0 right-0 mt-1.5 bg-slate-950/95 rounded-3xl shadow-[0_20px_70px_rgba(0,0,0,0.35)] z-50 overflow-hidden border border-white/10 animate-in fade-in slide-in-from-top-1 duration-150">
 
           {Object.entries(grouped).map(([category, categoryItems]) => (
             <div key={category}>
               {/* Category label */}
               {Object.keys(grouped).length > 1 && (
-                <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
-                  <span className="text-xxs font-bold uppercase tracking-widest text-gray-400">
+                <div className="px-4 py-2 bg-slate-900/95 border-b border-white/10">
+                  <span className="text-xxs font-bold uppercase tracking-widest text-slate-400">
                     {category}
                   </span>
                 </div>
@@ -244,10 +242,9 @@ const Search = ({
                     key={item.id}
                     onMouseDown={() => handleSelect(item)}
                     onMouseEnter={() => setHighlighted(flatIndex)}
-                    className={`w-full flex items-center justify-between gap-3
-                      px-4 py-3 text-left transition-colors duration-100
-                      ${isActive ? "bg-red-50" : "hover:bg-gray-50"}
-                      ${globalIndex < categoryItems.length - 1 ? "border-b border-gray-50" : ""}`}
+                    className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-all duration-100
+                      ${isActive ? "bg-white/10 text-white" : "hover:bg-white/5 text-slate-200"}
+                      ${globalIndex < categoryItems.length - 1 ? "border-b border-white/10" : ""}`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       {/* Search icon per row */}
@@ -255,11 +252,11 @@ const Search = ({
 
                       <div className="min-w-0">
                         <p className={`text-sm font-medium truncate
-                          ${isActive ? "text-primary" : "text-dark"}`}>
+                          ${isActive ? "text-white" : "text-slate-100"}`}>
                           <Highlight text={item.label} query={query} />
                         </p>
                         {item.sublabel && (
-                          <p className="text-xs text-gray-400 truncate mt-0.5">
+                          <p className="text-xs text-slate-400 truncate mt-0.5">
                             <Highlight text={item.sublabel} query={query} />
                           </p>
                         )}
@@ -281,12 +278,11 @@ const Search = ({
           ))}
 
           {/* Footer hint */}
-          <div className="px-4 py-2 bg-gray-50 border-t border-gray-100
-            flex items-center justify-between">
-            <span className="text-xxs text-gray-400">
+          <div className="px-4 py-2 bg-slate-900/95 border-t border-white/10 flex items-center justify-between">
+            <span className="text-xxs text-slate-400">
               {results.length} result{results.length !== 1 ? "s" : ""}
             </span>
-            <span className="text-xxs text-gray-300 hidden sm:block">
+            <span className="text-xxs text-slate-500 hidden sm:block">
               ↑↓ navigate · Enter select · Esc close
             </span>
           </div>
@@ -295,13 +291,12 @@ const Search = ({
 
       {/* No results dropdown */}
       {open && !dropdownDisabled && query.trim() !== "" && results.length === 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1.5
-          bg-white rounded-xs shadow-xl z-50 overflow-hidden border border-gray-100">
+        <div className="absolute top-full left-0 right-0 mt-1.5 bg-slate-950/95 rounded-3xl shadow-[0_20px_70px_rgba(0,0,0,0.35)] z-50 overflow-hidden border border-white/10">
           <div className="px-4 py-5 text-center">
-            <p className="text-sm text-gray-500">
-              No results for <span className="font-semibold text-dark">"{query}"</span>
+            <p className="text-sm text-slate-200">
+              No results for <span className="font-semibold text-white">"{query}"</span>
             </p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-slate-400 mt-1">
               Try a different name, location, or blood type
             </p>
           </div>
