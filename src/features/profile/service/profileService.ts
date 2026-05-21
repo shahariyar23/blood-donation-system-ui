@@ -1,4 +1,5 @@
 import api from "../../../utilities/api";
+import Path from "../../../utilities/paths";
 import { type IReduxUser } from "../../../redux/slices/userSlice";
 
 type UnknownRecord = Record<string, unknown>;
@@ -9,6 +10,14 @@ interface UserApiEnvelope {
   profile?: unknown;
   donorProfile?: unknown;
   message?: string;
+}
+
+interface AvatarUploadEnvelope {
+  message?: string;
+  data?: {
+    avatarUrl?: string;
+  };
+  avatarUrl?: string;
 }
 
 // Extended to include all fields that extractUser returns and
@@ -38,6 +47,7 @@ export interface ProfileUpdatePayload {
   name?: string;
   email?: string;
   phone?: string;
+  avatar?: string;
   bloodType?: IReduxUser["bloodType"];
   gender?: IReduxUser["gender"] | null;
   age?: number | null;
@@ -289,4 +299,33 @@ export const changePasswordApi = async (
   const res = await api.post("/auth/change-password", payload);
   const data = res.data as { message?: string; data?: { message?: string } };
   return data.message ?? data.data?.message ?? "Password updated successfully";
+};
+
+export const getAvatarUrl = (avatar?: string | null) => {
+  if (!avatar) return "";
+  if (/^https?:\/\//i.test(avatar)) return avatar;
+
+  const baseUrl = Path.server || Path.api?.replace(/\/api\/?$/, "") || "";
+  if (!baseUrl) return avatar;
+
+  return `${baseUrl.replace(/\/$/, "")}/${avatar.replace(/^\//, "")}`;
+};
+
+export const updateAvatarApi = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append("avatar", file);
+
+  const res = await api.post<AvatarUploadEnvelope>("/auth/upload-avatar", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  const avatarUrl = res.data.data?.avatarUrl ?? res.data.avatarUrl;
+  if (!avatarUrl) {
+    throw new Error("Avatar upload response was missing the Cloudinary URL");
+  }
+
+  const updatedProfile = await updateProfileApi({ avatar: avatarUrl });
+  return updatedProfile.avatar || avatarUrl;
 };

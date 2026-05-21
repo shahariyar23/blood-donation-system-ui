@@ -244,8 +244,8 @@ const RequestBloodForm = () => {
           >
             Post Another Request
           </button>
-          <Link to="/view-all-requests" className="btn-primary text-sm text-center">
-            View Donors
+          <Link to="/my-blood-request" className="btn-primary text-sm text-center">
+            My Blood Request
           </Link>
         </div>
       </div>

@@ -23,11 +23,16 @@ export interface CreateBloodRequestDto {
 
 export interface UserBloodRequest {
   _id: string;
+  patientName?: string;
   patientInfo?: { name?: string };
   bloodType: string;
   units: number;
   hospital?: string;
   location?: { displayName?: string; city?: string } | string;
+  phone?: string;
+  neededBy?: string;
+  expiresAt?: string;
+  isExpired?: boolean;
   createdAt: string;
   status: string;
   requestedBy?: { name?: string };
@@ -36,6 +41,19 @@ export interface UserBloodRequest {
 
 export interface GetUserRequestsResponse {
   requests: UserBloodRequest[];
+  stats?: {
+    total: number;
+    active: number;
+    fulfilled: number;
+    cancelled: number;
+    expired?: number;
+  };
+  pagination?: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
   total?: number;
   page?: number;
   limit?: number;

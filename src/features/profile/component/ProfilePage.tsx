@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "../../../redux/store";
-import { setAuthUser } from "../../../redux/slices/userSlice";
+import { setAuthUser, updateUser } from "../../../redux/slices/userSlice";
 import type { IReduxUser } from "../../../redux/slices/userSlice";
 import { profileStyles } from "../service/ProfileStyle";
 import ProfileCard from "../ui/ProfileCard";
@@ -13,6 +13,7 @@ import toast from "react-hot-toast";
 import {
   changePasswordApi,
   getProfileApi,
+  updateAvatarApi,
   updateProfileApi,
   type ProfileApiUser,
 } from "../service/profileService";
@@ -70,6 +71,9 @@ type ApiError = {
     };
   };
 };
+
+const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
 
 const EMPTY_PROFILE_FORM: ProfileForm = {
   name: "",
@@ -355,6 +359,31 @@ export default function ProfilePage() {
       syncProfile(updatedProfile);
     });
 
+  const uploadAvatar = async (file: File) => {
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      toast.error("Only JPG, PNG, or WEBP images are allowed");
+      return;
+    }
+
+    if (file.size > MAX_AVATAR_SIZE) {
+      toast.error("Avatar image must be 2 MB or smaller");
+      return;
+    }
+
+    setSaving("avatar");
+    try {
+      const avatar = await updateAvatarApi(file);
+      dispatch(updateUser({ avatar }));
+      setForm((p) => ({ ...p, avatar }));
+      toast.success("Avatar updated successfully");
+    } catch (err: unknown) {
+      const error = err as ApiError;
+      toast.error(error.response?.data?.message || "Failed to update avatar");
+    } finally {
+      setSaving(null);
+    }
+  };
+
   // const toggleAvailability = async (val: boolean) => {
   //   const prev = form.isAvailable;
   //   // optimistic update
@@ -432,7 +461,8 @@ export default function ProfilePage() {
             totalReceived={form.totalReceived}
             isAvailable={form.isAvailable}
             isDonorVerified={form.isDonorVerified}
-            onUpload={() => toast("Avatar upload coming soon")}
+            uploading={isSaving("avatar")}
+            onUpload={uploadAvatar}
           />
 
           {/* {isDonor && (
