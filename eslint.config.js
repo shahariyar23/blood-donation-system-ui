@@ -1,3 +1,4 @@
+// Updated: September 2026 - ESLint configuration for TypeScript & React
 import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
