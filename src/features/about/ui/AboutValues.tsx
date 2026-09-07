@@ -1,3 +1,4 @@
+// Updated: September 2026 - Core organizational values and principles
 import MainContainer from "../../../shared/main-container/MainContainer";
 import SectionContainer from "../../../shared/section-container/SectionContainer";
 import SectionHeading from "../../../shared/section-heading/SectionHeading";

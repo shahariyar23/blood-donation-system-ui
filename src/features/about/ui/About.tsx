@@ -1,3 +1,4 @@
+// Updated: September 2026 - Main About page composition
 import AboutBanner from "./AboutBanner";
 import AboutStats from "./AboutStats";
 import AboutMission from "./AboutMission";
@@ -11,6 +12,7 @@ import AboutCTA from "./AboutCTA";
 
 
 // ── Main Page ──────────────────────────────────────────
+// Composes all about page sections in a single layout
 const AboutPage = () => {
   return (
     <div className="min-h-screen bg-light">

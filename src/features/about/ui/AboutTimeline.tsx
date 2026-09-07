@@ -1,3 +1,4 @@
+// Updated: September 2026 - Company milestones and growth journey timeline
 import MainContainer from "../../../shared/main-container/MainContainer";
 import SectionContainer from "../../../shared/section-container/SectionContainer";
 import SectionHeading from "../../../shared/section-heading/SectionHeading";

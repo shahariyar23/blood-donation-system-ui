@@ -1,3 +1,4 @@
+// Updated: September 2026 - Mission statement and key initiatives
 import { Icons } from "../../../shared/icons/Icons";
 import MainContainer from "../../../shared/main-container/MainContainer";
 import SectionContainer from "../../../shared/section-container/SectionContainer";

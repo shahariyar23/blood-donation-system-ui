@@ -1,3 +1,4 @@
+// Updated: September 2026 - Key statistics showcase section
 import MainContainer from "../../../shared/main-container/MainContainer";
 import { stats } from "../service/aboutData";
 

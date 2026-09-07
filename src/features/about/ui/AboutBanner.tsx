@@ -1,3 +1,4 @@
+// Updated: September 2026 - Hero banner section with mission statement
 import { Link } from "react-router-dom";
 import MainContainer from "../../../shared/main-container/MainContainer";
 import { Icons } from "../../../shared/icons/Icons";

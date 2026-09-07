@@ -1,3 +1,4 @@
+// Updated: September 2026 - About page content and data management
 import { Icons } from "../../../shared/icons/Icons";
 
 export const stats = [

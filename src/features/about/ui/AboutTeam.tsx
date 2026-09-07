@@ -1,3 +1,4 @@
+// Updated: September 2026 - Team member profiles and showcase
 import MainContainer from "../../../shared/main-container/MainContainer";
 import SectionContainer from "../../../shared/section-container/SectionContainer";
 import { team } from "../service/aboutData";

@@ -1,3 +1,4 @@
+// Updated: September 2026 - Call-to-action section encouraging user action
 import CustomButton from "../../../shared/button/CustomButton";
 import { Icons } from "../../../shared/icons/Icons";
 import MainContainer from "../../../shared/main-container/MainContainer";
