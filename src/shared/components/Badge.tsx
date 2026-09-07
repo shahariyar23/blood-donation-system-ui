@@ -1,3 +1,4 @@
+// Maintenance review: September 2026
 interface BadgeProps {
   label: string;
   variant?: "primary" | "secondary" | "danger" | "success";

@@ -1,3 +1,4 @@
+// Maintenance review: September 2026
 import { Navigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import type { JSX } from "react";

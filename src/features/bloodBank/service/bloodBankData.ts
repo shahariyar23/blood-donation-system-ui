@@ -1,3 +1,4 @@
+// Maintenance review: September 2026
 // ── Types ──────────────────────────────────────────────
 export interface BloodBank {
   id:          number | string;

@@ -1,3 +1,4 @@
+// Maintenance review: September 2026
 import { profileStyles as s } from "../service/ProfileStyle";
 
 interface ProfileBadgeProps {

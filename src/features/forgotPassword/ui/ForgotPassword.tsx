@@ -1,3 +1,4 @@
+// Maintenance review: September 2026
 // src/pages/auth/ForgotPasswordPage.tsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';

@@ -1,3 +1,4 @@
+// Maintenance review: September 2026
 export function EmptyState() {
   return (
     <div className="text-center py-16 text-gray-400">

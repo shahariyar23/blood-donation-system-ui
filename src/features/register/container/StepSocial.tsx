@@ -1,3 +1,4 @@
+// Maintenance review: September 2026
 import type { RegisterFormData } from "../service/register.type";
 import { NavBtns } from "./NextBtn";
 import { styles } from "./style";

@@ -1,3 +1,4 @@
+// Maintenance review: September 2026
 import React from "react";
 
 const FurnitureLoader: React.FC = () => {

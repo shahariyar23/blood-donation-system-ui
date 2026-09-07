@@ -1,3 +1,4 @@
+// Maintenance review: September 2026
 type CsvValue = string | number | boolean | null | undefined;
 
 export interface CsvColumn<T> {

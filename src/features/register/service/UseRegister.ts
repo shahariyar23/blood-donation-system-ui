@@ -1,3 +1,4 @@
+// Maintenance review: September 2026
 import { useState } from "react";
 import { registerApi } from "./Register.service";
 import type { RegisterFormData } from "./register.type";

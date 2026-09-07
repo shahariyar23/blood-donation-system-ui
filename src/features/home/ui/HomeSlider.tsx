@@ -1,3 +1,4 @@
+// Maintenance review: September 2026
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination, EffectFade } from "swiper/modules";
 import { useState } from "react";

@@ -1,3 +1,4 @@
+// Maintenance review: September 2026
 export const adminNavItems = [
   { label: "Dashboard", to: "/admin" },
   { label: "Users", to: "/admin/users" },

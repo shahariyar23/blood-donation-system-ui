@@ -1,3 +1,4 @@
+// Maintenance review: September 2026
 // src/pages/auth/ResetPasswordPage.tsx
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
