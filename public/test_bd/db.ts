@@ -20,7 +20,7 @@ export interface NavigationItem {
 const banners = [
   {
     id: 1,
-    // url: "https://cdn.globus.pictures/fr/public/3456/1940/502f9241b130a44688f9a7ca7253094e423050992eb47c18923d6d10a2728f0d.jpeg?h=1078&w=1920",
+    // url: "https://cdn.globus.pictures/fr/public/3456/1940/502f9241b130a44688f9a7ca7253094e423050992eb47c18923d6d10a2728f0d.jpeg?h=1078&w=1920", test
     url: "https://i.ibb.co.com/qFJ8gH8w/Whats-App-Image-2025-12-24-at-16-51-13.jpg",
     title: "Purchase premium furniture from Hi Fashion",
     desc: "Furnishing interiors for life and business with savings of up to 70%",
