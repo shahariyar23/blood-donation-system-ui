@@ -1,3 +1,4 @@
+// Updated: September 2026 - Environment path configurations
 const server = import.meta.env.VITE_SERVER_URL as string;
 const client = import.meta.env.VITE_CLIENT_URL as string;
 const api = import.meta.env.VITE_API_URL as string;

@@ -1,6 +1,7 @@
+// Updated: September 2026 - Redux user state management slice
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-// ── Public User Type (no sensitive fields) ─────────────────
+// ─ Public User Type (no sensitive fields) ─────────────────
 export interface IReduxUser {
   _id: string;
   name: string;
@@ -40,7 +41,7 @@ export interface IReduxUser {
   updatedAt: string;
 }
 
-// ── Slice State ────────────────────────────────────────────
+// ─ Slice State ────────────────────────────────────────────
 interface UserState {
   isAuthenticated: boolean;
   user: IReduxUser | null;
@@ -56,7 +57,7 @@ const initialState: UserState = {
 };
 
 
-// ── Slice ──────────────────────────────────────────────────
+// ─ Slice ──────────────────────────────────────────────────
 const userSlice = createSlice({
   name: "user",
   initialState,

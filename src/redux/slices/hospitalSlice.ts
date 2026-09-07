@@ -1,3 +1,4 @@
+// Updated: September 2026 - Redux hospital authentication state management
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 export interface IReduxHospital {

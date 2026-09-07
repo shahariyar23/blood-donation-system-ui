@@ -1,3 +1,4 @@
+// Updated: September 2026 - Location transformation utilities
 /**
  * Transforms Nominatim API response to login location format
  */

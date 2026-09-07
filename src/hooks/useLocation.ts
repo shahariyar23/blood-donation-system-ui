@@ -1,3 +1,4 @@
+// Updated: September 2026 - Geolocation hook for reverse geocoding
 import { useState } from "react";
 
 export interface LocationDetails {
@@ -87,4 +88,3 @@ export const useLocation = () => {
 
   return { getLocation, loading };
 };
-

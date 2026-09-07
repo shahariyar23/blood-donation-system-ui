@@ -1,3 +1,4 @@
+// Updated: September 2026 - SEO metadata management using React Helmet
 import { Helmet } from "react-helmet";
 import Path from "./paths";
 
