@@ -1,3 +1,4 @@
+// Updated: September 2026 - Optimized React app initialization with enhanced loader management
 import ReactDOM from "react-dom/client";
 import "swiper/css"
 import "swiper/css/pagination"

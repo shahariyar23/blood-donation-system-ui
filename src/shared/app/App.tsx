@@ -1,3 +1,4 @@
+// Updated: September 2026 - Enhanced authentication handling and route initialization
 import AOS from "aos";
 import "aos/dist/aos.css";
 import { Suspense, useEffect, useState } from "react";

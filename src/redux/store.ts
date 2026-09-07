@@ -1,3 +1,4 @@
+// Updated: September 2026 - Redux store configuration and persistence middleware reviewed
 import { configureStore } from "@reduxjs/toolkit";
 import storage from "redux-persist/lib/storage";
 

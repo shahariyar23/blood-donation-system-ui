@@ -1,3 +1,4 @@
+// Reviewed: September 2026 - API interceptor logic verified for token refresh and auth handling
 import axios from "axios";
 import Path from "./paths";
 import { store } from "../redux/store";

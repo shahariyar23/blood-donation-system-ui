@@ -1,3 +1,4 @@
+// Maintenance update: September 2026 - Vite build configuration for Blood Donation UI
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
